@@ -84,7 +84,7 @@ local Connection = HeartbeatService:Connect(function()
                 task.spawn(function()
                     local OrePos = v:GetPivot().p
                     local args = {i,vector.create(OrePos.X-4, OrePos.Y-4, OrePos.Z-4)}
-                    print(ReplicatedStorage.MadCommEvents[Tool:GetAttribute("MadCommId")])
+                    ReplicatedStorage.MadCommEvents[Tool:GetAttribute("MadCommId")].Activate:FireServer(table.unpack(args))
                 end)
             end
         end
