@@ -87,7 +87,7 @@ Library:SetWatermark("Float.Balls [UMT]")
 
 --Main Script Function
 task.spawn(function()
-    while true do task.wait(.7)
+    while true do task.wait(.8)
         if Settings.Farming.AutoMine == true then
             for i,v in pairs(workspace.SpawnedBlocks:GetChildren()) do
                 if (Character:GetPivot().p-v:getPivot().p).Magnitude < Settings.Farming.AutoMineRange then
