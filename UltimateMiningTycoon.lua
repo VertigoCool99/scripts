@@ -36,6 +36,8 @@ local MainTab = Window:AddTab("Main")
                    
 local FarmGroupbox = MainTab:AddLeftGroupbox("Farming")
 local TeleportGroupbox = MainTab:AddRightGroupbox("Teleports")
+local ExploitsGroupbox = MainTab:AddRightGroupbox("Exploits")
+
 
 local AutoMineToggle = FarmGroupbox:AddToggle("AutoMineToggle",{Text = "Auto Mine",Default = false,Risky = false})
 AutoMineToggle:OnChanged(function(value)
@@ -72,6 +74,13 @@ ShopLocationTeleportDropdown:OnChanged(function(Value)
     end
 end)
 
+ExploitsGroupbox:AddButton({Text = "Insta Mine",Func = function()
+    for i,v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v,"Hardness") and rawget(v,"Speed") then
+            rawset(v,"Speed",2.5)
+        end
+    end
+end,})
 
 Library:SetWatermark("Float.Balls [UMT]")
 
