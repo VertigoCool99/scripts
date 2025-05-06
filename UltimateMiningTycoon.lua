@@ -77,15 +77,17 @@ Library:SetWatermark("Float.Balls [UMT]")
 
 
 --Main Script Function
-local Connection = HeartbeatService:Connect(function()
-    if Settings.Farming.AutoMine == true then
-        for i,v in pairs(workspace.SpawnedBlocks:GetChildren()) do
-            if (Character:GetPivot().p-v:getPivot().p).Magnitude < Settings.Farming.AutoMineRange then
-                task.spawn(function()
-                    local OrePos = v:GetPivot().p
-                    local args = {i,vector.create(OrePos.X-4, OrePos.Y-4, OrePos.Z-4)}
-                    ReplicatedStorage.MadCommEvents[Tool:GetAttribute("MadCommId")].Activate:FireServer(table.unpack(args))
-                end)
+task.spawn(function()
+    while true do task.wait(.1)
+        if Settings.Farming.AutoMine == true then
+            for i,v in pairs(workspace.SpawnedBlocks:GetChildren()) do
+                if (Character:GetPivot().p-v:getPivot().p).Magnitude < Settings.Farming.AutoMineRange then
+                    task.spawn(function()
+                        local OrePos = v:GetPivot().p
+                        local args = {i,vector.create(OrePos.X-4, OrePos.Y-4, OrePos.Z-4)}
+                        ReplicatedStorage.MadCommEvents[Tool:GetAttribute("MadCommId")].Activate:FireServer(table.unpack(args))
+                    end)
+                end
             end
         end
     end
@@ -101,12 +103,11 @@ PlayersBackpack:GetAttributeChangedSignal("NumContents"):Connect(function()
     if Settings.Farming.AutoSell == true then
         OldPlayerPosition = Character:GetPivot()
         if Character.OrePackCargo:GetAttribute("NumContents") > 0 then
-            repeat task.wait()
-                Character:PivotTo(PlayersUnloader:GetPivot())
-                task.wait(.2)
+            Character:PivotTo(PlayersUnloader:GetPivot()+Vector3.new(0,3,0))
+            repeat task.wait(.15)
                 fireproximityprompt(PlayersUnloader.Unloader.CargoVolume.CargoPrompt)
-                Character:PivotTo(OldPlayerPosition)
             until PlayersBackpack:GetAttribute("NumContents") < PlayersBackpack:GetAttribute("Capacity")
+            Character:PivotTo(OldPlayerPosition)
         end
     end
 end)
@@ -117,7 +118,6 @@ local SettingsUI = Settings:AddLeftGroupbox("UI")
 
 local SettingsUnloadButton = SettingsUI:AddButton({Text="Unload",Func=function()
     Library:Unload()
-    Connection:Disconnect()
 end})
 
 local SettingsMenuLabel = SettingsUI:AddLabel("SettingsMenuKeybindLabel","Menu Keybind")
