@@ -78,7 +78,7 @@ Library:SetWatermark("Float.Balls [UMT]")
 
 --Main Script Function
 task.spawn(function()
-    while true do task.wait(.1)
+    while true do task.wait(.7)
         if Settings.Farming.AutoMine == true then
             for i,v in pairs(workspace.SpawnedBlocks:GetChildren()) do
                 if (Character:GetPivot().p-v:getPivot().p).Magnitude < Settings.Farming.AutoMineRange then
@@ -102,7 +102,7 @@ Tool = GetTool()
 PlayersBackpack:GetAttributeChangedSignal("NumContents"):Connect(function()
     if Settings.Farming.AutoSell == true then
         OldPlayerPosition = Character:GetPivot()
-        if Character.OrePackCargo:GetAttribute("NumContents") > 0 then
+        if Character.OrePackCargo:GetAttribute("NumContents") == PlayersBackpack:GetAttribute("Capacity") then
             Character:PivotTo(PlayersUnloader:GetPivot()+Vector3.new(0,3,0))
             repeat task.wait(.15)
                 fireproximityprompt(PlayersUnloader.Unloader.CargoVolume.CargoPrompt)
