@@ -1,6 +1,8 @@
 --Librarys
 local Library = loadstring(game:HttpGet("https://gist.githubusercontent.com/VertigoCool99/282c9e98325f6b79299c800df74b2849/raw/d9efe72dc43a11b5237a43e2de71b7038e8bb37b/library.lua"))()
+local EspLibrary,EspLibraryFunctions = loadstring(game:HttpGet("https://gist.githubusercontent.com/VertigoCool99/2bcff189f55663147f8d63cb5b2012d9/raw/f407106832ff331ec6f10608702062b338469c4d/EspLibrary.lua"))()
 local Window = Library:CreateWindow({Title=" Ultimate Mining Tycoon",TweenTime=.15,Center=true})
+
 
 --Locals
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,8 +19,11 @@ local Selling = false
 
 --Tables
 local Settings = {
-    Farming = {AutoSell = false,AutoMine = false,AutoMineRange=70},
+    Farming = {AutoSell = false,AutoMine = false,AutoMineRange=70,OreHitboxes=false,OreHitboxesSize = 4},
+    Player = {Walkspeed = 16},
+    Visuals = {OresEnabled = false,OreNames=false,OreDistances=false},
 }
+local ActiveOreList = {}
 
 --Functions
 function GetTool()
@@ -35,11 +40,12 @@ function GetTool()
 end
 
 local MainTab = Window:AddTab("Main")
+local VisualTab = Window:AddTab("Visual")
                    
 local FarmGroupbox = MainTab:AddLeftGroupbox("Farming")
 local TeleportGroupbox = MainTab:AddRightGroupbox("Teleports")
-local ExploitsGroupbox = MainTab:AddRightGroupbox("Exploits")
-
+local PlayerGroupbox = MainTab:AddRightGroupbox("Player")
+local ExploitsGroupbox = MainTab:AddLeftGroupbox("Exploits")
 
 local AutoMineToggle = FarmGroupbox:AddToggle("AutoMineToggle",{Text = "Auto Mine",Default = false,Risky = false})
 AutoMineToggle:OnChanged(function(value)
@@ -53,6 +59,22 @@ end)
 local AutoMineRangeSlider = FarmGroupbox:AddSlider("AutoMineRangeSlider",{Text = "Mining Range",Default = 70,Min = 10,Max = 70,Rounding = 0})
 AutoMineRangeSlider:OnChanged(function(Value)
     Settings.Farming.AutoMineRange = Value
+end)
+FarmGroupbox:AddDivider()
+local OreHitboxToggle = FarmGroupbox:AddToggle("OreHitboxToggle",{Text = "Ore Hitbox",Default = false,Risky = false})
+OreHitboxToggle:OnChanged(function(value)
+    Settings.Farming.OreHitboxes = value
+    if value == false then
+        for _,v in pairs(workspace.SpawnedBlocks:GetChildren()) do
+            if v:IsA("MeshPart") then
+                v.Size = Vector3.new(4.4,4.4,4.4)
+            end
+        end
+    end
+end)
+local OreHitboxSizeSlider = FarmGroupbox:AddSlider("OreHitboxSizeSlider",{Text = "Size",Default = 5,Min = 5,Max = 30,Rounding = 0})
+OreHitboxSizeSlider:OnChanged(function(Value)
+    Settings.Farming.OreHitboxesSize = Value
 end)
 
 local MainLocationTeleportDropdown = TeleportGroupbox:AddDropdown("MainLocationTeleportDropdown",{Text = "Locations", AllowNull = false,Default="My Plot",Values = {"My Plot","Mine"},Multi = false,})
@@ -76,6 +98,12 @@ ShopLocationTeleportDropdown:OnChanged(function(Value)
     end
 end)
 
+local AutoMineRangeSlider = PlayerGroupbox:AddSlider("WalkspeedCharacter",{Text = "Walkspeed",Default = 16,Min = 16,Max = 150,Rounding = 0})
+AutoMineRangeSlider:OnChanged(function(Value)
+    Settings.Player.Walkspeed = Value
+    Character.Humanoid.WalkSpeed = Value
+end)
+
 ExploitsGroupbox:AddButton({Text = "Insta Mine",Func = function()
     for i,v in pairs(getgc(true)) do
         if type(v) == "table" and rawget(v,"Hardness") and rawget(v,"Speed") then
@@ -84,10 +112,34 @@ ExploitsGroupbox:AddButton({Text = "Insta Mine",Func = function()
     end
 end,})
 
+local OreEspGroupbox = VisualTab:AddLeftGroupbox("Ore Esp")
+
+local NameOreEnabledToggle = OreEspGroupbox:AddToggle("NameOreEnabledToggle",{Text = "Names",Default = false,Risky = false})
+NameOreEnabledToggle:OnChanged(function(value)
+    EspLibrary.ItemNames.Enabled = value
+end)
+local NameOreColorPicker = NameOreEnabledToggle:AddColorPicker("NameOreColorPicker",{Default = Color3.fromRGB(255,255,255);Rainbow = false})
+NameOreColorPicker:OnChanged(function(Color)
+    EspLibrary.ItemNames.Color = Color
+end)
+local DistanceOreEnabledToggle = OreEspGroupbox:AddToggle("DistanceOreEnabledToggle",{Text = "Distance",Default = false,Risky = false})
+DistanceOreEnabledToggle:OnChanged(function(value)
+    EspLibrary.ItemDistances.Enabled = value
+end)
+local DistanceOreColorPicker = DistanceOreEnabledToggle:AddColorPicker("DistanceOreColorPicker",{Default = Color3.fromRGB(255,255,255);Rainbow = false})
+DistanceOreColorPicker:OnChanged(function(Color)
+    EspLibrary.ItemDistances.Color = Color
+end)
+local OreItemRenderDistance = OreEspGroupbox:AddSlider("ItemRenderDistance",{Text = "Render Distance",Default = 1000,Min = 1,Max = 1500,Rounding = 0})
+OreItemRenderDistance:OnChanged(function(Value)
+    EspLibrary.GeneralSettings.ItemRenderDistance = Value
+end)
+
+
 Library:SetWatermark("Float.Balls [UMT]")
 
 
---Main Script Function
+--Main Script Function [Messy Code, there is better ways ik]
 task.spawn(function()
     while true do task.wait(.8)
         if Settings.Farming.AutoMine == true and Character.OrePackCargo:GetAttribute("NumContents") ~= PlayersBackpack:GetAttribute("Capacity") then
@@ -107,7 +159,6 @@ task.spawn(function()
     while true do task.wait(.5)
         Tool = GetTool()
         if Settings.Farming.AutoSell == true and Selling == false then
-            print("Selling")
             OldPlayerPosition = Character:GetPivot()
             if Character.OrePackCargo:GetAttribute("NumContents") == PlayersBackpack:GetAttribute("Capacity") then
                 Selling = true
@@ -122,12 +173,39 @@ task.spawn(function()
     end
 end)
 Tool = GetTool()
+
+LocalPlayer.CharacterAdded:Connect(function(character)
+    Character = character
+    character:WaitForChild("Humanoid",5).WalkSpeed = Settings.Player.Walkspeed
+end)
+
+game:GetService("Workspace").SpawnedBlocks.ChildAdded:Connect(function(v)
+    if v:IsA("MeshPart") and v:GetAttribute("MineId") then
+        ActiveOreList[v] = {Name=v:GetAttribute("MineId"),Type="Ore"}
+        EspLibraryFunctions:CreateItemEsp(v,ActiveOreList[v])
+    end
+    if Settings.Farming.OreHitboxes == true then
+        for _,v in pairs(workspace.SpawnedBlocks:GetChildren()) do
+            if v:IsA("MeshPart") then
+                v.Size = Vector3.new(Settings.Farming.OreHitboxesSize,Settings.Farming.OreHitboxesSize,Settings.Farming.OreHitboxesSize)
+            end
+        end
+    end
+end)
+for i,v in next, game:GetService("Workspace").SpawnedBlocks:GetChildren() do
+    if v:IsA("MeshPart") and v:GetAttribute("MineId") then
+        ActiveOreList[v] = {Name=v:GetAttribute("MineId"),Type="Ore"}
+        EspLibraryFunctions:CreateItemEsp(v,ActiveOreList[v])
+    end
+end
+
 --Settings Start
 local Settings = Window:AddTab("Settings")
 local SettingsUI = Settings:AddLeftGroupbox("UI")
 
 local SettingsUnloadButton = SettingsUI:AddButton({Text="Unload",Func=function()
     Library:Unload()
+    EspLibraryFunctions:Unload()
 end})
 
 local SettingsMenuLabel = SettingsUI:AddLabel("SettingsMenuKeybindLabel","Menu Keybind")
