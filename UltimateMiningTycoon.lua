@@ -166,17 +166,16 @@ task.spawn(function()
     end
 end)
 task.spawn(function()
-    while true do task.wait(.5)
+    while true do task.wait(.3)
         Tool = GetTool()
         if Settings.Farming.AutoSell == true and Selling == false then
             OldPlayerPosition = Character:GetPivot()
             if Character.OrePackCargo:GetAttribute("NumContents") == PlayersBackpack:GetAttribute("Capacity") then
                 Selling = true
                 Character:PivotTo(PlayersUnloader:GetPivot()+Vector3.new(0,3,0))
-                repeat task.wait(.2)
-                    task.wait(.1)
-                    fireproximityprompt(PlayersUnloader.Unloader.CargoVolume.CargoPrompt)
-                until PlayersBackpack:GetAttribute("NumContents") < PlayersBackpack:GetAttribute("Capacity")
+                task.wait(.2)
+                fireproximityprompt(PlayersUnloader.Unloader.CargoVolume.CargoPrompt)
+                task.wait(.1)
                 Character:PivotTo(OldPlayerPosition)
                 Selling = false
             end
