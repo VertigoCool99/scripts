@@ -8,14 +8,10 @@ local Window = Library:CreateWindow({Title=" Ultimate Mining Tycoon",TweenTime=.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local Character = LocalPlayer.Character
-local Tool = nil
 local Plot = game:GetService("Workspace").Plots[LocalPlayer:GetAttribute("PlotId")]
 local PlayersUnloader = game:GetService("Workspace").Placeables[LocalPlayer:GetAttribute("PlotId")].UnloaderSystem
-local OldPlayerPosition
 local PlayersBackpack = Character:WaitForChild("OrePackCargo",5)
-local FirstRun = true
-local oldTick = tick()
-local Selling = false
+local FirstRun,oldTick,Selling,OldPlayerPosition,Tool = true,tick(),false,Vector3.new(0,0,0),nil
 
 --Tables
 local Settings = {
@@ -130,7 +126,7 @@ local DistanceOreColorPicker = DistanceOreEnabledToggle:AddColorPicker("Distance
 DistanceOreColorPicker:OnChanged(function(Color)
     EspLibrary.ItemDistances.Color = Color
 end)
-local OreItemRenderDistance = OreEspGroupbox:AddSlider("ItemRenderDistance",{Text = "Render Distance",Default = 1000,Min = 1,Max = 1500,Rounding = 0})
+local OreItemRenderDistance = OreEspGroupbox:AddSlider("ItemRenderDistance",{Text = "Render Distance",Default = 200,Min = 1,Max = 500,Rounding = 0})
 OreItemRenderDistance:OnChanged(function(Value)
     EspLibrary.GeneralSettings.ItemRenderDistance = Value
 end)
@@ -177,7 +173,8 @@ task.spawn(function()
             if Character.OrePackCargo:GetAttribute("NumContents") == PlayersBackpack:GetAttribute("Capacity") then
                 Selling = true
                 Character:PivotTo(PlayersUnloader:GetPivot()+Vector3.new(0,3,0))
-                repeat task.wait(.15)
+                repeat task.wait(.2)
+                    task.wait(.1)
                     fireproximityprompt(PlayersUnloader.Unloader.CargoVolume.CargoPrompt)
                 until PlayersBackpack:GetAttribute("NumContents") < PlayersBackpack:GetAttribute("Capacity")
                 Character:PivotTo(OldPlayerPosition)
@@ -187,7 +184,6 @@ task.spawn(function()
     end
 end)
 Tool = GetTool()
-
 LocalPlayer.CharacterAdded:Connect(function(character)
     Character = character
     character:WaitForChild("Humanoid",5).WalkSpeed = Settings.Player.Walkspeed
@@ -196,6 +192,11 @@ end)
 game:GetService("Workspace").SpawnedBlocks.ChildAdded:Connect(function(v)
     if v:IsA("MeshPart") and v:GetAttribute("MineId") then
         ActiveOreList[v] = {Name=v:GetAttribute("MineId"),Type="Ore"}
+        if Settings.Visuals.OreIgnoreList[v:GetAttribute("MineId")] ~= nil then
+            table.insert(EspLibrary.ObjectIgnoreList,v)
+        elseif Settings.Visuals.OreIgnoreList[v:GetAttribute("MineId")] == nil and table.find(EspLibrary.ObjectIgnoreList,v) then
+            table.remove(EspLibrary.ObjectIgnoreList,table.find(EspLibrary.ObjectIgnoreList,v))
+        end
         EspLibraryFunctions:CreateItemEsp(v,ActiveOreList[v])
     end
     if Settings.Farming.OreHitboxes == true then
@@ -206,8 +207,6 @@ game:GetService("Workspace").SpawnedBlocks.ChildAdded:Connect(function(v)
         end
     end
 end)
-
-
 for i,v in next, game:GetService("Workspace").SpawnedBlocks:GetChildren() do
     if v:IsA("MeshPart") and v:GetAttribute("MineId") then
         ActiveOreList[v] = {Name=v:GetAttribute("MineId"),Type="Ore_"..v:GetAttribute("MineId")}
