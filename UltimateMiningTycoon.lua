@@ -1,6 +1,6 @@
 --Librarys
 local Library = loadstring(game:HttpGet("https://gist.githubusercontent.com/VertigoCool99/282c9e98325f6b79299c800df74b2849/raw/d9efe72dc43a11b5237a43e2de71b7038e8bb37b/library.lua"))()
-local EspLibrary,EspLibraryFunctions = loadstring(game:HttpGet("https://gist.githubusercontent.com/VertigoCool99/2bcff189f55663147f8d63cb5b2012d9/raw/f407106832ff331ec6f10608702062b338469c4d/EspLibrary.lua"))()
+local EspLibrary,EspLibraryFunctions = loadstring(game:HttpGet("https://gist.githubusercontent.com/VertigoCool99/2bcff189f55663147f8d63cb5b2012d9/raw/c15541927610e44cfc31d640a1ddce50cda9e680/EspLibrary.lua"))()
 local Window = Library:CreateWindow({Title=" Ultimate Mining Tycoon",TweenTime=.15,Center=true})
 
 
@@ -21,9 +21,9 @@ local Selling = false
 local Settings = {
     Farming = {AutoSell = false,AutoMine = false,AutoMineRange=70,OreHitboxes=false,OreHitboxesSize = 4},
     Player = {Walkspeed = 16},
-    Visuals = {OresEnabled = false,OreNames=false,OreDistances=false},
+    Visuals = {OresEnabled = false,OreNames=false,OreDistances=false,OreIgnoreList={}},
 }
-local ActiveOreList = {}
+local ActiveOreList,OreList = {},{"Tin","Iron","Lead","Cobalt","Silver","Aluminium","Uranium","Vanadium","Titanium","Gold","Tungsten","Plutonium","Palladium","Iridium","Adamantium","Thorium","Mithril","Rhodium","Unobtainium","Topaz","Emerald","Ruby","Sapphire","Diamond","Poudretteite","Zultanite","Grandidierite","Musgravite","Painite"}
 
 --Functions
 function GetTool()
@@ -135,6 +135,20 @@ OreItemRenderDistance:OnChanged(function(Value)
     EspLibrary.GeneralSettings.ItemRenderDistance = Value
 end)
 
+local OreIgnoreListDropdown = OreEspGroupbox:AddDropdown("OreIgnoreListDropdown",{Text = "Ignore Ores", AllowNull = true,Values = OreList,Multi = true,})
+OreIgnoreListDropdown:OnChanged(function(Value)
+    Settings.Visuals.OreIgnoreList = Value
+    for i,v in next, game:GetService("Workspace").SpawnedBlocks:GetChildren() do
+        if v:IsA("MeshPart") and v:GetAttribute("MineId") then
+            if Settings.Visuals.OreIgnoreList[v:GetAttribute("MineId")] ~= nil then
+                table.insert(EspLibrary.ObjectIgnoreList,v)
+            elseif Settings.Visuals.OreIgnoreList[v:GetAttribute("MineId")] == nil and table.find(EspLibrary.ObjectIgnoreList,v) then
+                table.remove(EspLibrary.ObjectIgnoreList,table.find(EspLibrary.ObjectIgnoreList,v))
+            end
+        end
+    end
+end)
+
 
 Library:SetWatermark("Float.Balls [UMT]")
 
@@ -192,10 +206,18 @@ game:GetService("Workspace").SpawnedBlocks.ChildAdded:Connect(function(v)
         end
     end
 end)
+
+
 for i,v in next, game:GetService("Workspace").SpawnedBlocks:GetChildren() do
     if v:IsA("MeshPart") and v:GetAttribute("MineId") then
-        ActiveOreList[v] = {Name=v:GetAttribute("MineId"),Type="Ore"}
+        ActiveOreList[v] = {Name=v:GetAttribute("MineId"),Type="Ore_"..v:GetAttribute("MineId")}
         EspLibraryFunctions:CreateItemEsp(v,ActiveOreList[v])
+
+        if table.find(Settings.Visuals.OreIgnoreList,v:GetAttribute("MineId")) then
+            table.insert(EspLibrary.ObjectIgnoreList,v)
+        elseif not table.find(Settings.Visuals.OreIgnoreList,v:GetAttribute("MineId")) and table.find(EspLibrary.ObjectIgnoreList,v) then
+            table.remove(EspLibrary.ObjectIgnoreList,table.find(EspLibrary.ObjectIgnoreList,v))
+        end
     end
 end
 
