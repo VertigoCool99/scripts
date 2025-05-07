@@ -1,3 +1,4 @@
+--Librarys
 local Library = loadstring(game:HttpGet("https://gist.githubusercontent.com/VertigoCool99/282c9e98325f6b79299c800df74b2849/raw/d9efe72dc43a11b5237a43e2de71b7038e8bb37b/library.lua"))()
 local Window = Library:CreateWindow({Title=" Ultimate Mining Tycoon",TweenTime=.15,Center=true})
 
@@ -10,8 +11,9 @@ local Plot = game:GetService("Workspace").Plots[LocalPlayer:GetAttribute("PlotId
 local PlayersUnloader = game:GetService("Workspace").Placeables[LocalPlayer:GetAttribute("PlotId")].UnloaderSystem
 local OldPlayerPosition
 local PlayersBackpack = Character:WaitForChild("OrePackCargo",5)
-local HeartbeatService = game:GetService("RunService").Heartbeat
 local FirstRun = true
+local oldTick = tick()
+local Selling = false
 
 --Tables
 local Settings = {
@@ -88,7 +90,7 @@ Library:SetWatermark("Float.Balls [UMT]")
 --Main Script Function
 task.spawn(function()
     while true do task.wait(.8)
-        if Settings.Farming.AutoMine == true then
+        if Settings.Farming.AutoMine == true and Character.OrePackCargo:GetAttribute("NumContents") ~= PlayersBackpack:GetAttribute("Capacity") then
             for i,v in pairs(workspace.SpawnedBlocks:GetChildren()) do
                 if (Character:GetPivot().p-v:getPivot().p).Magnitude < Settings.Farming.AutoMineRange then
                     task.spawn(function()
@@ -104,23 +106,22 @@ end)
 task.spawn(function()
     while true do task.wait(.5)
         Tool = GetTool()
-    end
-end)
-Tool = GetTool()
-
-PlayersBackpack:GetAttributeChangedSignal("NumContents"):Connect(function()
-    if Settings.Farming.AutoSell == true then
-        OldPlayerPosition = Character:GetPivot()
-        if Character.OrePackCargo:GetAttribute("NumContents") == PlayersBackpack:GetAttribute("Capacity") then
-            Character:PivotTo(PlayersUnloader:GetPivot()+Vector3.new(0,3,0))
-            repeat task.wait(.15)
-                fireproximityprompt(PlayersUnloader.Unloader.CargoVolume.CargoPrompt)
-            until PlayersBackpack:GetAttribute("NumContents") < PlayersBackpack:GetAttribute("Capacity")
-            Character:PivotTo(OldPlayerPosition)
+        if Settings.Farming.AutoSell == true and Selling == false then
+            print("Selling")
+            OldPlayerPosition = Character:GetPivot()
+            if Character.OrePackCargo:GetAttribute("NumContents") == PlayersBackpack:GetAttribute("Capacity") then
+                Selling = true
+                Character:PivotTo(PlayersUnloader:GetPivot()+Vector3.new(0,3,0))
+                repeat task.wait(.15)
+                    fireproximityprompt(PlayersUnloader.Unloader.CargoVolume.CargoPrompt)
+                until PlayersBackpack:GetAttribute("NumContents") < PlayersBackpack:GetAttribute("Capacity")
+                Character:PivotTo(OldPlayerPosition)
+                Selling = false
+            end
         end
     end
 end)
-
+Tool = GetTool()
 --Settings Start
 local Settings = Window:AddTab("Settings")
 local SettingsUI = Settings:AddLeftGroupbox("UI")
@@ -148,4 +149,6 @@ Library.SaveManager:SetFolder('Test')
 Library.SaveManager:BuildConfigSection(Settings)
 --Settings End
 
+--Init
 FirstRun = false
+Library:Notify({Title="Loaded";Text=string.format('Loaded In '..(tick()-oldTick));Duration=5})
