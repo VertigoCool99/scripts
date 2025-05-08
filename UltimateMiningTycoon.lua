@@ -52,7 +52,7 @@ AutoSellToggle:OnChanged(function(value)
     Settings.Farming.AutoSell = value
 end)
 
-local AutoMineRangeSlider = FarmGroupbox:AddSlider("AutoMineRangeSlider",{Text = "Mining Range",Default = 70,Min = 10,Max = 70,Rounding = 0})
+local AutoMineRangeSlider = FarmGroupbox:AddSlider("AutoMineRangeSlider",{Text = "Mining Range",Default = 150,Min = 10,Max = 150,Rounding = 0})
 AutoMineRangeSlider:OnChanged(function(Value)
     Settings.Farming.AutoMineRange = Value
 end)
@@ -171,6 +171,7 @@ task.spawn(function()
 end)
 task.spawn(function()
     while true do task.wait(.3)
+        PlayersBackpack = Character:WaitForChild("OrePackCargo",5)
         Tool = GetTool()
         if Settings.Farming.AutoSell == true and Selling == false then
             OldPlayerPosition = Character:GetPivot()
