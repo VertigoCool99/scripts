@@ -15,7 +15,7 @@ local FirstRun,oldTick,Selling,OldPlayerPosition,Tool = true,tick(),false,Vector
 
 --Tables
 local Settings = {
-    Farming = {AutoSell = false,AutoMine = false,AutoMineRange=70,OreHitboxes=false,OreHitboxesSize = 4},
+    Farming = {AutoSell = false,AutoMine = false,AutoMineRange=70,OreHitboxes=false,OreHitboxesSize = 4,OreIgnoreList={}},
     Player = {Walkspeed = 16},
     Visuals = {OresEnabled = false,OreNames=false,OreDistances=false,OreIgnoreList={}},
 }
@@ -41,7 +41,7 @@ local VisualTab = Window:AddTab("Visual")
 local FarmGroupbox = MainTab:AddLeftGroupbox("Farming")
 local TeleportGroupbox = MainTab:AddRightGroupbox("Teleports")
 local PlayerGroupbox = MainTab:AddRightGroupbox("Player")
-local ExploitsGroupbox = MainTab:AddLeftGroupbox("Exploits")
+local ExploitsGroupbox = MainTab:AddRightGroupbox("Exploits")
 
 local AutoMineToggle = FarmGroupbox:AddToggle("AutoMineToggle",{Text = "Auto Mine",Default = false,Risky = false})
 AutoMineToggle:OnChanged(function(value)
@@ -55,6 +55,10 @@ end)
 local AutoMineRangeSlider = FarmGroupbox:AddSlider("AutoMineRangeSlider",{Text = "Mining Range",Default = 70,Min = 10,Max = 70,Rounding = 0})
 AutoMineRangeSlider:OnChanged(function(Value)
     Settings.Farming.AutoMineRange = Value
+end)
+local FarmOreIgnoreListDropdown = FarmGroupbox:AddDropdown("FarmOreIgnoreListDropdown",{Text = "Ignore Ores", AllowNull = true,Values = OreList,Multi = true,})
+FarmOreIgnoreListDropdown:OnChanged(function(Value)
+    Settings.Farming.OreIgnoreList = Value
 end)
 FarmGroupbox:AddDivider()
 local OreHitboxToggle = FarmGroupbox:AddToggle("OreHitboxToggle",{Text = "Ore Hitbox",Default = false,Risky = false})
@@ -154,7 +158,7 @@ task.spawn(function()
     while true do task.wait(.8)
         if Settings.Farming.AutoMine == true and Character.OrePackCargo:GetAttribute("NumContents") ~= PlayersBackpack:GetAttribute("Capacity") then
             for i,v in pairs(workspace.SpawnedBlocks:GetChildren()) do
-                if (Character:GetPivot().p-v:getPivot().p).Magnitude < Settings.Farming.AutoMineRange then
+                if (Character:GetPivot().p-v:getPivot().p).Magnitude < Settings.Farming.AutoMineRange and Settings.Farming.OreIgnoreList[v:GetAttribute("MineId")] == nil then
                     task.spawn(function()
                         local OrePos = v:GetPivot().p
                         local args = {i,vector.create(OrePos.X-4, OrePos.Y-4, OrePos.Z-4)}
