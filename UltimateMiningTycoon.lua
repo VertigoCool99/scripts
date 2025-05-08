@@ -158,7 +158,7 @@ task.spawn(function()
     while true do task.wait(.8)
         if Settings.Farming.AutoMine == true and Character.OrePackCargo:GetAttribute("NumContents") ~= PlayersBackpack:GetAttribute("Capacity") then
             for i,v in pairs(workspace.SpawnedBlocks:GetChildren()) do
-                if (Character:GetPivot().p-v:getPivot().p).Magnitude < Settings.Farming.AutoMineRange and Settings.Farming.OreIgnoreList[v:GetAttribute("MineId")] == nil then
+                if (Character:GetPivot().p-v:getPivot().p).Magnitude < Settings.Farming.AutoMineRange and Settings.Farming.OreIgnoreList[v:GetAttribute("MineId")] == nil and Tool ~= nil then
                     task.spawn(function()
                         local OrePos = v:GetPivot().p
                         local args = {i,vector.create(OrePos.X-4, OrePos.Y-4, OrePos.Z-4)}
@@ -188,6 +188,7 @@ task.spawn(function()
 end)
 Tool = GetTool()
 LocalPlayer.CharacterAdded:Connect(function(character)
+    Tool = GetTool()
     Character = character
     character:WaitForChild("Humanoid",5).WalkSpeed = Settings.Player.Walkspeed
 end)
