@@ -154,10 +154,15 @@ Library:SetWatermark("Float.Balls [UMT]")
 
 
 --Main Script Function [Messy Code, there is better ways ik]
+
 task.spawn(function()
-    while true do task.wait(.8)
+    while true do task.wait(.5)
         if Settings.Farming.AutoMine == true and Character.OrePackCargo:GetAttribute("NumContents") ~= PlayersBackpack:GetAttribute("Capacity") then
-            for i,v in pairs(workspace.SpawnedBlocks:GetChildren()) do
+            local min = Character:GetPivot() + Vector3.new(-Settings.Farming.AutoMineRange,-Settings.Farming.AutoMineRange,-Settings.Farming.AutoMineRange)
+            local max = Character:GetPivot() + Vector3.new(Settings.Farming.AutoMineRange,Settings.Farming.AutoMineRange,Settings.Farming.AutoMineRange)
+            local region = Region3.new(min.Position, max.Position)
+            local parts = workspace:FindPartsInRegion3WithWhiteList(region, {game.Workspace.SpawnedBlocks}, 100)
+            for i,v in pairs(parts) do
                 if (Character:GetPivot().p-v:getPivot().p).Magnitude < Settings.Farming.AutoMineRange and Settings.Farming.OreIgnoreList[v:GetAttribute("MineId")] == nil and Tool ~= nil then
                     task.spawn(function()
                         local OrePos = v:GetPivot().p
