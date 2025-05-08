@@ -52,7 +52,7 @@ AutoSellToggle:OnChanged(function(value)
     Settings.Farming.AutoSell = value
 end)
 
-local AutoMineRangeSlider = FarmGroupbox:AddSlider("AutoMineRangeSlider",{Text = "Mining Range",Default = 150,Min = 10,Max = 150,Rounding = 0})
+local AutoMineRangeSlider = FarmGroupbox:AddSlider("AutoMineRangeSlider",{Text = "Mining Range",Default = 150,Min = 10,Max = 250,Rounding = 0})
 AutoMineRangeSlider:OnChanged(function(Value)
     Settings.Farming.AutoMineRange = Value
 end)
