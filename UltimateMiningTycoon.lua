@@ -15,7 +15,7 @@ local FirstRun,oldTick,Selling,OldPlayerPosition,Tool = true,tick(),false,Vector
 
 --Tables
 local Settings = {
-    Farming = {AutoSell = false,AutoMine = false,AutoMineRange=70,AutoMineDelay=.5,OreHitboxes=false,OreHitboxesSize = 4,OreIgnoreList={}},
+    Farming = {AutoSell = false,AutoMine = false,AutoMineRange=70,OreHitboxes=false,OreHitboxesSize = 4,OreIgnoreList={}},
     Player = {Walkspeed = 16},
     Visuals = {OresEnabled = false,OreNames=false,OreDistances=false,OreIgnoreList={}},
 }
@@ -55,10 +55,6 @@ end)
 local AutoMineRangeSlider = FarmGroupbox:AddSlider("AutoMineRangeSlider",{Text = "Mining Range",Default = 150,Min = 10,Max = 250,Rounding = 0})
 AutoMineRangeSlider:OnChanged(function(Value)
     Settings.Farming.AutoMineRange = Value
-end)
-local AutoMineDelaySlider = FarmGroupbox:AddSlider("AutoMineDelaySlider",{Text = "Mining Delay",Default = .8,Min = .1,Max = 1,Rounding = 1})
-AutoMineDelaySlider:OnChanged(function(Value)
-    Settings.Farming.AutoMineDelay = Value
 end)
 local FarmOreIgnoreListDropdown = FarmGroupbox:AddDropdown("FarmOreIgnoreListDropdown",{Text = "Ignore Ores", AllowNull = true,Values = OreList,Multi = true,})
 FarmOreIgnoreListDropdown:OnChanged(function(Value)
@@ -160,7 +156,7 @@ Library:SetWatermark("Float.Balls [UMT]")
 --Main Script Function [Messy Code, there is better ways ik]
 
 task.spawn(function()
-    while true do task.wait(Settings.Farming.AutoMineDelay)
+    while true do task.wait(.75)
         if Settings.Farming.AutoMine == true and Character.OrePackCargo:GetAttribute("NumContents") ~= PlayersBackpack:GetAttribute("Capacity") then
             local min = Character:GetPivot() + Vector3.new(-Settings.Farming.AutoMineRange,-Settings.Farming.AutoMineRange,-Settings.Farming.AutoMineRange)
             local max = Character:GetPivot() + Vector3.new(Settings.Farming.AutoMineRange,Settings.Farming.AutoMineRange,Settings.Farming.AutoMineRange)
