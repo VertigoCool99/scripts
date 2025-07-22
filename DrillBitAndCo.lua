@@ -1,31 +1,30 @@
 --Locals
+local cloneref = cloneref or function() return end
 local Players = cloneref(game:GetService("Players"))
 local Character = Players.LocalPlayer.Character
 local ClientBuildings = workspace.ClientBuildings
 local Ore = workspace.Ore
 local PlotMod = require(game:GetService("ReplicatedStorage").Plot.PlotClient)
 local HttpService = game:GetService("HttpService")
-local writefile = writefile or function() return end
-local readfile = readfile or function () return "" end
-
+local GameFunsMod = require(game:GetService("ReplicatedStorage").Tool.Game.GameFunctions)
+local UiSrcMod = require(game:GetService("ReplicatedStorage").UISrc.UIModules.PlotActions)
+local AutoLoadedPlot = false
 
 --Tables
-local Settings = {AutoCrates=false,AutoAllUpgraders=false,AutoOpenCrates=false,AutoSelectedUpgrader=false,SelectedUpgrader="",AutoRebirth=false,PlotName=""}
+local Settings = {AutoCrates=false,AutoAllUpgraders=false,AutoOpenCrates=false,AutoSelectedUpgrader=false,SelectedUpgrader="",AutoRebirth=false,PlotName="",AutoPlotUpgrade=false,AutoLoadLayout=false}
 local Boxes = {["Regular Box"]=1,["Unreal Box"]=2,["Rebirth Box"]=3}
 local PlotList = {}
 
-
 --Init
-if listfiles and isfile then
-    for i,v in pairs(listfiles("DrillBitAndCo")) do
-        if isfile(v) then 
-            local old = string.split(v,"DrillBitAndCo")[2]
-            table.insert(PlotList,string.sub(old,2,string.len(old)-5)) 
-        end
-    end 
-end
+assert(listfiles,"Executor Not Supported | Missing listfiles")
+assert(readfile,"Executor Not Supported | Missing readfile")
+assert(writefile,"Executor Not Supported | Missing writefile")
+assert(getupvalues,"Executor Not Supported | Missing getupvalues")
+assert(getupvalue,"Executor Not Supported | Missing getupvalue")
 
 --Functions
+local PlotPrices = getupvalues(UiSrcMod.Setup)[3].plotSize
+
 function GetMyPlot() 
 	return ClientBuildings:FindFirstChild(Players.LocalPlayer.Name)
 end
@@ -100,6 +99,24 @@ function LoadMyPlot(PlotName)
     for i,v in pairs(Decoded) do
         PlaceItem(v.Id,v.CellData,v.Rotation)
     end
+end
+
+local function UpgardePlotSize()
+	local tier = Players.LocalPlayer:GetAttribute("plotSize")
+    if tier == 10 then return end
+	for i, v in ipairs(PlotPrices) do
+		if Players.LocalPlayer:GetAttribute("cash") >= v then
+			tier = i
+		else
+			break
+		end
+	end
+	local nextPrice = PlotPrices[tier + 1]
+    local hasNext = false
+    if nextPrice ~= nil then
+       hasNext = nextPrice and Players.LocalPlayer:GetAttribute("cash") >= nextPrice or false 
+    end
+	return tier, hasNext
 end
 
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
@@ -208,8 +225,37 @@ RebirthGroupBox:AddToggle('AutoRebirth', {
     Callback = function(value)
         Settings.AutoRebirth = value
         task.spawn(function()
-            while Settings.AutoRebirth do task.wait(1)
-                game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Rebirth"):InvokeServer()    
+            while Settings.AutoRebirth == true and Players.LocalPlayer:GetAttribute("cash") >= GameFunsMod.GetRebirthPrice(Players.LocalPlayer.leaderstats.Life.Value) do task.wait()
+                game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Rebirth"):InvokeServer()
+                AutoLoadedPlot = false
+            end
+        end)
+    end
+})
+RebirthGroupBox:AddToggle('AutoLoadLayout', {
+    Text = 'Auto Load Layout',
+    Tooltip = "Loads Selected layout when the plot size is max",
+    Default = false,
+    Callback = function(value)
+        Settings.AutoLoadLayout = value
+        task.spawn(function()
+            while Settings.AutoLoadLayout == true and Players.LocalPlayer:GetAttribute("plotSize") == 10 and AutoLoadedPlot == false do task.wait(1)
+                AutoLoadedPlot = true
+                game:GetService("ReplicatedStorage").Plot.Remote.WithdrawAll:FireServer()
+                LoadMyPlot(Settings.PlotName)
+            end
+        end)
+    end
+})
+RebirthGroupBox:AddDivider()
+RebirthGroupBox:AddToggle('AutoPlotUpgrade', {
+    Text = 'Auto Plot Size Upgrade',
+    Default = false,
+    Callback = function(value)
+        Settings.AutoPlotUpgrade = value
+        task.spawn(function()
+            while Settings.AutoPlotUpgrade == true do task.wait(.2)
+                UpgardePlotSize()
             end
         end)
     end
@@ -266,7 +312,6 @@ SaveManager:SetFolder('DrillBitAndCo/DrillBitAndCo')
 SaveManager:BuildConfigSection(Tabs['UI Settings'])
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 SaveManager:LoadAutoloadConfig()
-
 
 --Connections
 workspace.Crates.ChildAdded:Connect(function(box)
