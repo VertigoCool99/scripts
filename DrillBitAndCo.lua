@@ -5,6 +5,9 @@ local ClientBuildings = workspace.ClientBuildings
 local Ore = workspace.Ore
 local PlotMod = require(game:GetService("ReplicatedStorage").Plot.PlotClient)
 local HttpService = game:GetService("HttpService")
+local writefile = writefile or function() return end
+local readfile = readfile or function () return "" end
+
 
 --Tables
 local Settings = {AutoCrates=false,AutoAllUpgraders=false,AutoOpenCrates=false,AutoSelectedUpgrader=false,SelectedUpgrader="",AutoRebirth=false,PlotName=""}
@@ -13,11 +16,13 @@ local PlotList = {}
 
 
 --Init
-for i,v in pairs(listfiles("DrillBitAndCo")) do
-    if isfile(v) then 
-        local old = string.split(v,"DrillBitAndCo")[2]
-        table.insert(PlotList,string.sub(old,2,string.len(old)-5)) 
-    end
+if listfiles and isfile then
+    for i,v in pairs(listfiles("DrillBitAndCo")) do
+        if isfile(v) then 
+            local old = string.split(v,"DrillBitAndCo")[2]
+            table.insert(PlotList,string.sub(old,2,string.len(old)-5)) 
+        end
+    end 
 end
 
 --Functions
