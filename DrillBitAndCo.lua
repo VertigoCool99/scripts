@@ -243,7 +243,7 @@ function CategorizeUpgraders()
 					table.insert(withRange, {
 						Part = upgradePart,
 						Model = model,
-						Min = range[1],
+						Min = range[1] or 0,
 						Max = range[2]
 					})
 				else
