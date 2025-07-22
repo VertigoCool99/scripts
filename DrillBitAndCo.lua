@@ -22,6 +22,15 @@ assert(writefile,"Executor Not Supported | Missing writefile")
 assert(getupvalues,"Executor Not Supported | Missing getupvalues")
 assert(getupvalue,"Executor Not Supported | Missing getupvalue")
 
+
+for i,v in pairs(listfiles("DrillBitAndCo")) do
+    if isfile(v) then 
+        local old = string.split(v,"DrillBitAndCo")[2]
+        table.insert(PlotList,string.sub(old,2,string.len(old)-5)) 
+    end
+end
+
+
 --Functions
 local PlotPrices = getupvalues(UiSrcMod.Setup)[3].plotSize
 
@@ -99,24 +108,6 @@ function LoadMyPlot(PlotName)
     for i,v in pairs(Decoded) do
         PlaceItem(v.Id,v.CellData,v.Rotation)
     end
-end
-
-local function UpgardePlotSize()
-	local tier = Players.LocalPlayer:GetAttribute("plotSize")
-    if tier == 10 then return end
-	for i, v in ipairs(PlotPrices) do
-		if Players.LocalPlayer:GetAttribute("cash") >= v then
-			tier = i
-		else
-			break
-		end
-	end
-	local nextPrice = PlotPrices[tier + 1]
-    local hasNext = false
-    if nextPrice ~= nil then
-       hasNext = nextPrice and Players.LocalPlayer:GetAttribute("cash") >= nextPrice or false 
-    end
-	return tier, hasNext
 end
 
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
@@ -225,9 +216,11 @@ RebirthGroupBox:AddToggle('AutoRebirth', {
     Callback = function(value)
         Settings.AutoRebirth = value
         task.spawn(function()
-            while Settings.AutoRebirth == true and Players.LocalPlayer:GetAttribute("cash") >= GameFunsMod.GetRebirthPrice(Players.LocalPlayer.leaderstats.Life.Value) do task.wait()
-                game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Rebirth"):InvokeServer()
-                AutoLoadedPlot = false
+            while Settings.AutoRebirth == true do task.wait()
+                if Players.LocalPlayer:GetAttribute("cash") >= GameFunsMod.GetRebirthPrice(Players.LocalPlayer.leaderstats.Life.Value) then
+                    game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Rebirth"):InvokeServer()
+                    AutoLoadedPlot = false
+                end
             end
         end)
     end
@@ -239,10 +232,12 @@ RebirthGroupBox:AddToggle('AutoLoadLayout', {
     Callback = function(value)
         Settings.AutoLoadLayout = value
         task.spawn(function()
-            while Settings.AutoLoadLayout == true and Players.LocalPlayer:GetAttribute("plotSize") == 10 and AutoLoadedPlot == false do task.wait(1)
-                AutoLoadedPlot = true
-                game:GetService("ReplicatedStorage").Plot.Remote.WithdrawAll:FireServer()
-                LoadMyPlot(Settings.PlotName)
+            while Settings.AutoLoadLayout == true do task.wait(1)
+                if Players.LocalPlayer:GetAttribute("plotSize") == 10 and AutoLoadedPlot == false then
+                    AutoLoadedPlot = true
+                    game:GetService("ReplicatedStorage").Plot.Remote.WithdrawAll:FireServer()
+                    LoadMyPlot(Settings.PlotName)
+                end
             end
         end)
     end
@@ -255,7 +250,11 @@ RebirthGroupBox:AddToggle('AutoPlotUpgrade', {
         Settings.AutoPlotUpgrade = value
         task.spawn(function()
             while Settings.AutoPlotUpgrade == true do task.wait(.2)
-                UpgardePlotSize()
+                local tier = Players.LocalPlayer:GetAttribute("plotSize")
+                if tier == 10 then return end
+                if Players.LocalPlayer:GetAttribute("cash") >= PlotPrices[Players.LocalPlayer:GetAttribute("plotSize")+1] then
+                    game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("PurchaseMasteryUpgrade"):InvokeServer("plotSize")
+                end
             end
         end)
     end
