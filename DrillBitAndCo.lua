@@ -11,7 +11,7 @@ local UiSrcMod = require(game:GetService("ReplicatedStorage").UISrc.UIModules.Pl
 local AutoLoadedPlot = false
 
 --Tables
-local Settings = {AutoCrates=false,AutoAllUpgraders=false,AutoOpenCrates=false,AutoSelectedUpgrader=false,SelectedUpgrader="",AutoRebirth=false,PlotName="",AutoPlotUpgrade=false,AutoLoadLayout=false}
+local Settings = {AutoCrates=false,AutoAllUpgraders=false,AutoOpenCrates=false,AutoSelectedUpgrader=false,SelectedUpgrader="",AutoRebirth=false,PlotName="",AutoPlotUpgrade=false,AutoLoadLayout=false,AutoSellOres=false}
 local Boxes = {["Regular Box"]=1,["Unreal Box"]=2,["Rebirth Box"]=3}
 local PlotList = {}
 
@@ -133,7 +133,7 @@ assert(writefile,"Executor Not Supported | Missing writefile")
 assert(getupvalues,"Executor Not Supported | Missing getupvalues")
 assert(getupvalue,"Executor Not Supported | Missing getupvalue")
 
-
+makefolder("DrillBitAndCo")
 for i,v in pairs(listfiles("DrillBitAndCo")) do
     if isfile(v) then 
         local old = string.split(v,"DrillBitAndCo")[2]
@@ -337,7 +337,7 @@ OresGroupBox:AddToggle('AutoOres', {
     Callback = function(Value)
         Settings.AutoAllUpgraders = Value
         task.spawn(function()
-            RunSmartUpgraderLoop()
+            RunSmartUpgraderLoop(Settings.AutoSellOres)
         end)
     end
 })
