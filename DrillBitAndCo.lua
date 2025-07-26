@@ -23,10 +23,12 @@ assert(getupvalues,"Executor Not Supported | Missing getupvalues")
 assert(getupvalue,"Executor Not Supported | Missing getupvalue")
 
 makefolder("DrillBitAndCo")
-for i,v in pairs(listfiles("DrillBitAndCo")) do
-    if isfile(v) then 
-        local old = string.split(v,"DrillBitAndCo")[2]
-        table.insert(PlotList,string.sub(old,2,string.len(old)-5)) 
+if #listfiles("DrillBitAndCo") > 0 then
+    for i,v in pairs(listfiles("DrillBitAndCo")) do
+        if isfile(v) then 
+            local old = string.split(v,"DrillBitAndCo")[2]
+            table.insert(PlotList,string.sub(old,2,string.len(old)-5)) 
+        end
     end
 end
 
