@@ -23,6 +23,7 @@ assert(getupvalues,"Executor Not Supported | Missing getupvalues")
 assert(getupvalue,"Executor Not Supported | Missing getupvalue")
 
 
+makefolder("DrillBitAndCo")
 for i,v in pairs(listfiles("DrillBitAndCo")) do
     if isfile(v) then 
         local old = string.split(v,"DrillBitAndCo")[2]
