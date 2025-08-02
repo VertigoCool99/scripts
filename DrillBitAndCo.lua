@@ -34,7 +34,7 @@ end
 
 
 --Functions
-local PlotPrices = getupvalues(UiSrcMod.Setup)[3].plotSize
+local PlotPrices = getupvalues(UiSrcMod.Setup)[6].plotSize
 
 function GetMyPlot() 
 	return ClientBuildings:FindFirstChild(Players.LocalPlayer.Name)
@@ -375,7 +375,7 @@ SaveManager:LoadAutoloadConfig()
 
 --Connections
 workspace.Crates.ChildAdded:Connect(function(box)
-	if box and box:FindFirstChild("Hitbox") and Settings.AutoCrates == true then 
+	if box and box:FindFirstChild("Hitbox") and Settings.AutoCrates == true and box:IsDescendantOf(workspace.Crates) then 
 		firetouchinterest(box.Hitbox, Character.HumanoidRootPart, 0)
         firetouchinterest(box.Hitbox, Character.HumanoidRootPart, 1)
 	end
