@@ -375,8 +375,10 @@ SaveManager:LoadAutoloadConfig()
 
 --Connections
 workspace.Crates.ChildAdded:Connect(function(box)
-	if box and box:FindFirstChild("Hitbox") and Settings.AutoCrates == true and box:IsDescendantOf(workspace.Crates) then 
-		firetouchinterest(box.Hitbox, Character.HumanoidRootPart, 0)
-        firetouchinterest(box.Hitbox, Character.HumanoidRootPart, 1)
-	end
+    task.delay(.1,function() --stops a weird overlapping worlds bug
+        if box and box:FindFirstChild("Hitbox") and Settings.AutoCrates == true and box:IsDescendantOf(workspace.Crates) then
+            firetouchinterest(box.Hitbox, Character.HumanoidRootPart, 0)
+            firetouchinterest(box.Hitbox, Character.HumanoidRootPart, 1)
+        end
+    end)
 end)
