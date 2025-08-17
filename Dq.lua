@@ -140,14 +140,13 @@ function Functions:GetClosestEnemy()
         local enemyPosition = v:FindFirstChild("HumanoidRootPart") and v.HumanoidRootPart.Position
         local enemyHumanoid = v:FindFirstChild("Humanoid")
         if enemyPosition and enemyHumanoid then
-            if v:FindFirstChild("Head").enemyNameplate.Frame.healthBackground.healthBar.ImageColor3 == Color3.fromRGB(84, 195, 255) then --Shielded Enemys
-                continue
-            end
-            local distance = (Character.HumanoidRootPart.Position - enemyPosition).Magnitude
-            if distance < shortestDistance or (distance == shortestDistance and enemyHumanoid.MaxHealth > maxHealth) then
-                shortestDistance = distance
-                closestEnemy = v
-                maxHealth = enemyHumanoid.MaxHealth
+            if not v:FindFirstChild("Head").enemyNameplate.Frame.healthBackground.healthBar.ImageColor3 == Color3.fromRGB(84, 195, 255) then --Shielded Enemys
+                local distance = (Character.HumanoidRootPart.Position - enemyPosition).Magnitude
+                if distance < shortestDistance or (distance == shortestDistance and enemyHumanoid.MaxHealth > maxHealth) then
+                    shortestDistance = distance
+                    closestEnemy = v
+                    maxHealth = enemyHumanoid.MaxHealth
+                end
             end
         end
     end
