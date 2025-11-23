@@ -118,8 +118,11 @@ function Functions:Teleport(Cframe)
     end
 end
 function Functions:GetEnemys()
+    local Dungeon = nil
     if not workspace:FindFirstChild("dungeon") then 
-        return workspace:FindFirstChild("enemies"):GetChildren()
+        Dungeon = workspace:FindFirstChild("enemies"):GetChildren()
+    else
+        Dungeon = workspace:FindFirstChild("dungeon")
     end
     for i, v in pairs(workspace.dungeon:GetChildren()) do
         if v:FindFirstChild("enemyFolder") and v.enemyFolder:FindFirstChildOfClass("Model") then
@@ -133,19 +136,37 @@ function Functions:GetClosestEnemy()
     if Functions:GetEnemys() == nil then return end
 
     local closestEnemy = nil
-    local highestHealthEnemy = nil
     local shortestDistance = math.huge
-    local maxHealth = -math.huge
+    
     for _, v in pairs(Functions:GetEnemys()) do
-        local enemyPosition = v:FindFirstChild("HumanoidRootPart") and v.HumanoidRootPart.Position
+        local enemyRoot = v:FindFirstChild("HumanoidRootPart")
         local enemyHumanoid = v:FindFirstChild("Humanoid")
-        if enemyPosition and enemyHumanoid then
-            if not v:FindFirstChild("Head").enemyNameplate.Frame.healthBackground.healthBar.ImageColor3 == Color3.fromRGB(84, 195, 255) then --Shielded Enemys
-                local distance = (Character.HumanoidRootPart.Position - enemyPosition).Magnitude
-                if distance < shortestDistance or (distance == shortestDistance and enemyHumanoid.MaxHealth > maxHealth) then
+        local enemyHead = v:FindFirstChild("Head")
+        
+        if enemyRoot and enemyHumanoid and enemyHead then
+            -- Safe nameplate checking
+            local hasShield = false
+            local nameplate = enemyHead:FindFirstChild("enemyNameplate")
+            
+            if nameplate then
+                local frame = nameplate:FindFirstChild("Frame")
+                if frame then
+                    local healthBackground = frame:FindFirstChild("healthBackground")
+                    if healthBackground then
+                        local healthBar = healthBackground:FindFirstChild("healthBar")
+                        if healthBar and healthBar:IsA("ImageLabel") then
+                            hasShield = healthBar.ImageColor3 == Color3.fromRGB(84, 195, 255)
+                        end
+                    end
+                end
+            end
+            
+            -- Only target non-shielded enemies
+            if not hasShield then
+                local distance = (Character.HumanoidRootPart.Position - enemyRoot.Position).Magnitude
+                if distance < shortestDistance then
                     shortestDistance = distance
                     closestEnemy = v
-                    maxHealth = enemyHumanoid.MaxHealth
                 end
             end
         end
@@ -355,7 +376,7 @@ end)
 
 
 task.spawn(function()
-    while true do task.wait()
+    while true do task.wait(1)
         if Character and Character:FindFirstChild("Head") and Character.Head:FindFirstChild("playerNameplate") and Players.LocalPlayer and Players.LocalPlayer.PlayerGui and Players.LocalPlayer.PlayerGui:FindFirstChild("HUD") and Players.LocalPlayer.PlayerGui.HUD:FindFirstChild("Main") and Players.LocalPlayer.PlayerGui.HUD.Main:FindFirstChild("PlayerStatus") and Players.LocalPlayer.PlayerGui.HUD.Main.PlayerStatus:FindFirstChild("PlayerStatus") and Players.LocalPlayer.PlayerGui.HUD.Main.PlayerStatus.PlayerStatus:FindFirstChild("PlayerName") then
             if Settings.Misc.NameHide == true then
                 Players.LocalPlayer.PlayerGui.HUD.Main.PlayerStatus.PlayerStatus.Portrait.Frame.ImageLabel.Visible = false
