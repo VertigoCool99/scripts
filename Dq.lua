@@ -458,6 +458,9 @@ task.spawn(function()
                 game:GetService("ReplicatedStorage").dataRemoteEvent:FireServer(unpack({[1] = {["\3"] = "raidReady"},[2] = RemoteCodes["DungeonHandler"]}))        
                 game:GetService("ReplicatedStorage"):WaitForChild("Utility"):WaitForChild("AssetRequester"):WaitForChild("Remote"):InvokeServer({[1] = "ui",[2] = "raidTimeLeftGui"})                  
             end
+            if Settings.AutoFarm.UseSkills == true then
+                Functions:DoSkills(5)
+            end
             if Settings.Misc.GetGreggCoin == true and GreggCoin == true and RealCoin ~= nil then
                 Functions:Teleport(RealCoin:GetPivot()-Vector3.new(0,Settings.AutoFarm.Distance*2,0))
                 GreggCoin = false;RealCoin=nil
@@ -465,9 +468,6 @@ task.spawn(function()
             local Enemy = Functions:GetClosestEnemy()
             if GreggCoin == false and Enemy ~= nil then
                 Functions:Teleport(Functions:GetClosestEnemy():GetPivot())
-                if Settings.AutoFarm.UseSkills == true then
-                    Functions:DoSkills(5)
-                end
             end
         end
     end 
