@@ -106,9 +106,9 @@ function Functions:Teleport(Cframe)
     Character.HumanoidRootPart.Anchored = false
     repeat task.wait()
         if Character:FindFirstChild("HumanoidRootPart") and bodyPosition ~= nil and bodyGyro ~= nil then
-            Character:PivotTo(CFrame.new(Cframe.p + Vector3.new(0, Settings.AutoFarm.Distance * 2, 0))* CFrame.Angles(math.rad(90), 0, 0))
+            Character:PivotTo(CFrame.new(Cframe.p + Vector3.new(0, Settings.AutoFarm.Distance * 2, 0))* CFrame.Angles(math.rad(0), 0, 0))
             bodyPosition.Position = Cframe.Position + Vector3.new(0, Settings.AutoFarm.Distance * 2, 0)
-            bodyGyro.CFrame = CFrame.new(Character:GetPivot().p, Cframe.Position) * CFrame.Angles(math.rad(90), 0, 0)
+            bodyGyro.CFrame = CFrame.new(Character:GetPivot().p, Cframe.Position) * CFrame.Angles(math.rad(0), 0, 0)
         end
     until tick() - oldTime >= Settings.AutoFarm.Delay or not Character:FindFirstChild("HumanoidRootPart")
     WaitingToTp = false
@@ -120,10 +120,11 @@ end
 function Functions:GetEnemys()
     local Dungeon = nil
     if not workspace:FindFirstChild("dungeon") then 
-        Dungeon = workspace:FindFirstChild("enemies"):GetChildren()
+        Dungeon = workspace:FindFirstChild("enemies")
     else
         Dungeon = workspace:FindFirstChild("dungeon")
     end
+    if not Dungeon:FindFirstChild("enemyFolder") then return workspace:FindFirstChild("enemies"):GetChildren() end
     for i, v in pairs(workspace.dungeon:GetChildren()) do
         if v:FindFirstChild("enemyFolder") and v.enemyFolder:FindFirstChildOfClass("Model") then
             return v.enemyFolder:GetChildren()
@@ -457,9 +458,6 @@ task.spawn(function()
                 game:GetService("ReplicatedStorage").dataRemoteEvent:FireServer(unpack({[1] = {["\3"] = "raidReady"},[2] = RemoteCodes["DungeonHandler"]}))        
                 game:GetService("ReplicatedStorage"):WaitForChild("Utility"):WaitForChild("AssetRequester"):WaitForChild("Remote"):InvokeServer({[1] = "ui",[2] = "raidTimeLeftGui"})                  
             end
-            if Settings.AutoFarm.UseSkills == true then
-                Functions:DoSkills(20)
-            end
             if Settings.Misc.GetGreggCoin == true and GreggCoin == true and RealCoin ~= nil then
                 Functions:Teleport(RealCoin:GetPivot()-Vector3.new(0,Settings.AutoFarm.Distance*2,0))
                 GreggCoin = false;RealCoin=nil
@@ -467,6 +465,9 @@ task.spawn(function()
             local Enemy = Functions:GetClosestEnemy()
             if GreggCoin == false and Enemy ~= nil then
                 Functions:Teleport(Functions:GetClosestEnemy():GetPivot())
+                if Settings.AutoFarm.UseSkills == true then
+                    Functions:DoSkills(5)
+                end
             end
         end
     end 
