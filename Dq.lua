@@ -539,6 +539,11 @@ workspace.ChildAdded:Connect(function(child)
         end 
     end
 end)
+Players.LocalPlayer.PlayerGui.rewardGuiHolder.holder.ChildAdded:Connect(function()
+    if Settings.AutoFarm.RaidFarm == true then
+        game:GetService("TeleportService"):Teleport(2414851778,game.Players.LocalPlayer)
+    end
+end)
 
 --Settings Start
 local Settings = Window:AddTab("Settings")
@@ -582,11 +587,6 @@ Library.SaveManager:LoadAutoloadConfig()
 --Settings End
 
 --Init
-Players.LocalPlayer.PlayerGui.rewardGuiHolder.holder.ChildAdded:Connect(function()
-    if Settings.AutoFarm.RaidFarm == true then
-        game:GetService("TeleportService"):Teleport(2414851778,game.Players.LocalPlayer)
-    end
-end)
 Players.LocalPlayer.PlayerGui.cutscene.Changed:Connect(function(change)
     if change == "Enabled" then
         game:GetService("ReplicatedStorage").dataRemoteEvent:FireServer({[1] = {["\3"] = "skip"},[2] = RemoteCodes["Cutscene"]})        
