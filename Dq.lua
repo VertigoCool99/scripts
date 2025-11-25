@@ -350,7 +350,8 @@ RaidFarmToggle:OnChanged(function(value)
 end)
 Players.LocalPlayer.PlayerGui:WaitForChild("RetryVote").Changed:Connect(function(change)
     if change == "Enabled" and Settings.Misc.AutoRetry == true then
-        game:GetService("ReplicatedStorage").dataRemoteEvent:FireServer({[1] = {["\3"] = "vote",["vote"] = true},[2] = RemoteCodes["DungeonRetryBridge"]})    
+        game:GetService("ReplicatedStorage").dataRemoteEvent:FireServer({[1] = {["\3"] = "vote",["vote"] = true},[2] = RemoteCodes["DungeonRetryBridge"]})   
+        repeat task.wait(3) game:GetService("ReplicatedStorage").dataRemoteEvent:FireServer({[1] = {["\3"] = "vote",["vote"] = true},[2] = RemoteCodes["DungeonRetryBridge"]})   until uhmm == false
     end
 end)
 local GetGreggCoinToggle = SettingsGroup:AddToggle("GetGreggCoin",{Text = "Get Gregg Coin",Default = false,Risky = false})
