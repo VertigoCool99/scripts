@@ -91,31 +91,79 @@ function Functions:Teleport(Cframe)
     if not Character:FindFirstChild("HumanoidRootPart") then return end
     LastplayerPos = Character:GetPivot().p
     if WaitingToTp == true then return end
+    
+    local targetPosition = Cframe.Position + Vector3.new(0, Settings.AutoFarm.Distance * 2, 0)
+    local currentPosition = Character.HumanoidRootPart.Position
+    local distance = (targetPosition - currentPosition).Magnitude
+    
+    WaitingToTp = true
+    
+    -- Create or get body movers
     local bodyPosition = Character.HumanoidRootPart:FindFirstChildOfClass("BodyPosition")
     local bodyGyro = Character.HumanoidRootPart:FindFirstChildOfClass("BodyGyro")
+    
     if not Character.HumanoidRootPart:FindFirstChildOfClass("BodyGyro") then
         bodyGyro = Instance.new("BodyGyro")
-        bodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000);bodyGyro.CFrame = Character.HumanoidRootPart.CFrame;bodyGyro.D = 500;bodyGyro.Parent = Character.HumanoidRootPart
+        bodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000)
+        bodyGyro.CFrame = Character.HumanoidRootPart.CFrame
+        bodyGyro.D = 500
+        bodyGyro.Parent = Character.HumanoidRootPart
     end
+    
     if not Character.HumanoidRootPart:FindFirstChildOfClass("BodyPosition") then
         bodyPosition = Instance.new("BodyPosition")
-        bodyPosition.MaxForce = Vector3.new(400000, 400000, 400000);bodyPosition.Position = Cframe.Position;bodyPosition.D = 300;bodyPosition.Parent = Character.HumanoidRootPart;Character.HumanoidRootPart.Velocity = Vector3.zero
+        bodyPosition.MaxForce = Vector3.new(400000, 400000, 400000)
+        bodyPosition.Position = targetPosition
+        bodyPosition.D = 300
+        bodyPosition.Parent = Character.HumanoidRootPart
+        Character.HumanoidRootPart.Velocity = Vector3.zero
     end
-    local oldTime = tick()
-    WaitingToTp = true
-    Character.HumanoidRootPart.Anchored = false
-    repeat task.wait()
-        if Character:FindFirstChild("HumanoidRootPart") and bodyPosition ~= nil and bodyGyro ~= nil then
-            Character:PivotTo(CFrame.new(Cframe.p + Vector3.new(0, Settings.AutoFarm.Distance * 2, 0))* CFrame.Angles(math.rad(70), math.rad(180), 0))
-            bodyPosition.Position = Cframe.Position + Vector3.new(0, Settings.AutoFarm.Distance * 2, 0)
-            bodyGyro.CFrame = CFrame.new(Character:GetPivot().p, Cframe.Position) * CFrame.Angles(math.rad(70), 0, 0)
-        end
-    until tick() - oldTime >= Settings.AutoFarm.Delay or not Character:FindFirstChild("HumanoidRootPart")
+    
+    -- Use TweenService for short distances (< 30)
+    if distance < 30 then
+        local speed = 35
+        local duration = distance / speed
+        
+        local tweenInfo = TweenInfo.new(
+            duration,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.Out
+        )
+        
+        -- Create target CFrame with proper look-at rotation
+        local lookAtCFrame = CFrame.new(targetPosition, Cframe.Position)
+        
+        -- Tween using CFrame
+        local tween = TweenService:Create(Character.HumanoidRootPart, tweenInfo, {CFrame = lookAtCFrame})
+        tween:Play()
+        
+        -- Update body movers during tween
+        local startTime = tick()
+        repeat task.wait()
+            if Character:FindFirstChild("HumanoidRootPart") and bodyPosition ~= nil and bodyGyro ~= nil then
+                bodyPosition.Position = targetPosition
+                bodyGyro.CFrame = lookAtCFrame
+            end
+        until tick() - startTime >= duration or not Character:FindFirstChild("HumanoidRootPart")
+        
+        tween:Cancel()
+        
+    else
+        -- Use body movers only for longer distances
+        local oldTime = tick()
+        
+        repeat task.wait()
+            if Character:FindFirstChild("HumanoidRootPart") and bodyPosition ~= nil and bodyGyro ~= nil then
+                local lookAtCFrame = CFrame.new(targetPosition, Cframe.Position)
+                
+                Character:PivotTo(lookAtCFrame)
+                bodyPosition.Position = targetPosition
+                bodyGyro.CFrame = lookAtCFrame
+            end
+        until tick() - oldTime >= Settings.AutoFarm.Delay or not Character:FindFirstChild("HumanoidRootPart")
+    end
+    
     WaitingToTp = false
-    if Character:FindFirstChild("HumanoidRootPart") then
-        Character.HumanoidRootPart.Anchored = true
-        bodyPosition:Destroy()
-    end
 end
 function Functions:GetEnemys()
     local Dungeon,temp = nil,{}
@@ -180,8 +228,6 @@ function Functions:GetClosestEnemy()
 
     return closestEnemy
 end
-
-
 
 function Functions:GetBestDungeon()
     local highestLevelDungeon = 0
@@ -467,6 +513,8 @@ task.spawn(function()
                 Functions:Teleport(RealCoin:GetPivot()-Vector3.new(0,Settings.AutoFarm.Distance*2,0))
                 GreggCoin = false;RealCoin=nil
             end
+
+
             local Enemy = Functions:GetClosestEnemy()
             if GreggCoin == false and Enemy ~= nil then
                 Functions:Teleport(Functions:GetClosestEnemy():GetPivot())
@@ -474,6 +522,7 @@ task.spawn(function()
                     Functions:DoSkills(5)
                 end
             end
+
         end
     end 
 end)
