@@ -1,6 +1,7 @@
 repeat task.wait() until game:IsLoaded()
 
 --Locals
+local Loaded = getgenv().Loaded
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Character = Players.LocalPlayer.Character
@@ -13,6 +14,10 @@ local RemoteModule
 local LastplayerPos,StuckTime = Vector3.zero,0
 local PlayerGui = Players.LocalPlayer.PlayerGui
 local OldName,OldTitle
+
+if Loaded == true then
+    error("Script already running")
+end
 
 --Tables
 local Settings = {
@@ -613,3 +618,5 @@ Functions:GetBestDungeon()
 AutoCreateDungeonNameDrop:SetValue(BestDungeon)
 AutoCreateDungeonDiffcultyDrop:SetValue(BestDifficulty)
 OldName,OldTitle = Players.LocalPlayer.PlayerGui.HUD.Main.PlayerStatus.PlayerStatus.PlayerName.Text,Character.Head.playerNameplate.Title.Text
+
+getgenv().Loaded = true
