@@ -490,11 +490,13 @@ task.spawn(function()
             game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(DunArgs))
         elseif workspace:FindFirstChild("CharacterSelectScene") and Settings.Dungeon.RaidEnabled == true then
             repeat task.wait() until game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("PartyUi")
-            game:GetService("Players").LocalPlayer.PlayerGui.PartyUi.Enabled = true;task.wait(.3)
+            game:GetService("Players").LocalPlayer.PlayerGui.PartyUi.Enabled = true;task.wait(.2)
             game:GetService("Players").LocalPlayer.PlayerGui.PartyUi.Frame.StartScreen.Visible = false;task.wait(.2)
             game:GetService("Players").LocalPlayer.PlayerGui.PartyUi.Frame.DungeonScreen.Visible=true;task.wait(.2)
-            firesignal(game:GetService("Players").LocalPlayer.PlayerGui.PartyUi.Frame.DungeonScreen.GameTypes.Raid.Activated);task.wait(.2)
-            firesignal(game:GetService("Players").LocalPlayer.PlayerGui.PartyUi.Frame.DungeonScreen.Frame.Content:FindFirstChild(Settings.Dungeon.RaidName).Activated);task.wait(.2)
+            for i=0,2 do 
+                firesignal(game:GetService("Players").LocalPlayer.PlayerGui.PartyUi.Frame.DungeonScreen.GameTypes.Raid.Activated);task.wait(.2)
+            end
+            firesignal(game:GetService("Players").LocalPlayer.PlayerGui.PartyUi.Frame.DungeonScreen.Frame.Content:FindFirstChild(Settings.Dungeon.RaidName).Frame.Activated);task.wait(.2)
             firesignal(game:GetService("Players").LocalPlayer.PlayerGui.PartyUi.Frame.CreateScreen.DungeonInfo.Solo.Activated)
         elseif Settings.Dungeon.EnabledBest == true then
             local DunArgs = {[1] = {[1] = {[1] = "\1",[2] = {["\3"] = "PlaySolo",["partyData"] = {
