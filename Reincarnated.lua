@@ -538,7 +538,7 @@ end
 task.spawn(function()
     task.wait(5)
     print("Cached remotes after 5 seconds:")
-    if RemoteCache < 1 then
+    if RemoteCache < 2 then
         game:GetService("TeleportService"):Teleport(126642046443487,game.Players.LocalPlayer)
     end
     for name, _ in pairs(RemoteCache) do
