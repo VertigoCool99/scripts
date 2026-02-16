@@ -1,85 +1,95 @@
---Remote Bypass
+--[[
+	Reincarnated - Project Vertigo Style
+	Inspired by Miners Haven automation scripts
+]]
+
+-- Remote Bypass System
 local Communicator = require(game:GetService("ReplicatedStorage"):WaitForChild("Libraries"):WaitForChild("Communicator"))
 local RemoteCache = {}
 local originalListener = Communicator.listenerFunction
 local old; old = hookfunction(originalListener, function(name)
     local result = old(name)
-    RemoteCache[name] = result  -- Store in cache
+    RemoteCache[name] = result
     print("📡 Remote cached:", name)
     return result
 end)
 
 local function GetRemote(name)
-    if RemoteCache[name] then
-        return RemoteCache[name]
-    end
-    local success, remote = pcall(function()
-        return Communicator.listenerFunction(name)
-    end)
-    
+    if RemoteCache[name] then return RemoteCache[name] end
+    local success, remote = pcall(function() return Communicator.listenerFunction(name) end)
     if success and remote then
         RemoteCache[name] = remote
         return remote
     end
-    
     return nil
 end
 
 local function CallRemote(name, ...)
     local remote = GetRemote(name)
-    if not remote then
-        error("Remote not found: " .. name)
-    end
-    
+    if not remote then error("Remote not found: " .. name) end
     local mt = getmetatable(remote)
     if not mt or not mt.__index or not mt.__index.Invoke then
         error("Remote has no Invoke method: " .. name)
     end
-
     return mt.__index.Invoke(remote, ...)
 end
 
+-- Libs
 local repo = 'https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/'
-
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 local Options = Library.Options
 local Toggles = Library.Toggles
 
-Library.ShowToggleFrameInKeybinds = true
-Library.ShowCustomCursor = true
-Library.NotifySide = "Left"
-
+-- Window (single tab only)
 local Window = Library:CreateWindow({
-	Title = 'Reincarnated',
-	Center = true,
-	AutoShow = true,
-	Resizable = true,
-	ShowCustomCursor = true,
-	UnlockMouseWhileOpen = true,
-	NotifySide = "Left",
-	TabPadding = 8,
-	MenuFadeTime = 0.2
+    Title = 'Reincarnated',
+    Center = true,
+    AutoShow = true,
+    Resizable = true,
+    ShowCustomCursor = true,
+    UnlockMouseWhileOpen = true,
+    NotifySide = "Left",
+    TabPadding = 8,
+    MenuFadeTime = 0.2
 })
 
-local Tabs = {
-	Main = Window:AddTab('Main'),
-	['UI Settings'] = Window:AddTab('UI Settings'),
-}
+-- Single tab for everything
+local MainTab = Window:AddTab('Main')
+local UISettingsTab = Window:AddTab('UI Settings')
 
--- Game services
+-- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- Variables for features
-local oreBoostLoopRunning = false
-local crateFarmRunning = false
-local highlightsEnabled = false
-local crateFarmConnection = nil
+-- Modules
+local SuffixModule = require(game:GetService("ReplicatedStorage").Libraries.Suffix)
+local ProgressionModule = require(game:GetService("ReplicatedStorage").Libraries.Progression)
+local DataModule = require(game:GetService("ReplicatedFirst").Client.Libraries.Data)
 
--- Function to get current Tycoon (fresh each time)
+-- Settings
+local Settings = {
+    -- Ore Boost
+    OreBoostLoop = false,
+    BoostCycles = 6,
+    
+    -- Rebirth
+    AutoRebirth = false,
+    RebirthDelay = 10,
+    LoadBlueprint = false,
+    BlueprintSlot = 1,
+    ReloadBlueprint = false,
+    ReloadDelay = 5,
+    
+    -- Crates
+    CrateFarm = false,
+    HighlightCrates = false,
+}
+
+-- ============== UTILITY FUNCTIONS ==============
+
 local function getTycoon()
     for i, v in pairs(workspace.Game.Bases:GetChildren()) do
         if v:FindFirstChild("Owner") and v.Owner.Value == LocalPlayer then
@@ -89,435 +99,476 @@ local function getTycoon()
     return nil
 end
 
--- Highlight system
-local function setupHighlights()
-    if not highlightsEnabled then return end
-    
-    local Dump = workspace:FindFirstChild("Dump")
-    if not Dump then
-        warn("workspace.Dump does not exist")
-        return
-    end
-
-    -- Function to add highlight to a part/object
-    local function addHighlight(object)
-        if object:IsA("BasePart") or object:IsA("Model") then
-            -- Check if highlight already exists
-            if not object:FindFirstChildOfClass("Highlight") then
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "CrateHighlighter"
-                highlight.FillColor = Color3.fromRGB(0, 255, 0)
-                highlight.OutlineColor = Color3.fromRGB(0, 200, 0)
-                highlight.FillTransparency = 0.3
-                highlight.OutlineTransparency = 0
-                highlight.Parent = object
-            end
-        end
-    end
-
-    -- Check all existing descendants
-    for _, descendant in pairs(Dump:GetDescendants()) do
-        if string.find(descendant.Name:lower(), "crate") then
-            addHighlight(descendant)
-        end
-    end
-
-    -- Event listener for new descendants
-    Dump.DescendantAdded:Connect(function(descendant)
-        task.wait()
-        if string.find(descendant.Name:lower(), "crate") then
-            addHighlight(descendant)
-        end
-    end)
+local function getTycoonCenter()
+    local tycoon = getTycoon()
+    if not tycoon then return nil end
+    return tycoon:FindFirstChild("Center") or tycoon:FindFirstChild("Spawn") or tycoon
 end
 
--- Remove all highlights
-local function removeHighlights()
-    local Dump = workspace:FindFirstChild("Dump")
-    if not Dump then return end
-    
-    for _, descendant in pairs(Dump:GetDescendants()) do
-        local highlight = descendant:FindFirstChildOfClass("Highlight")
-        if highlight and highlight.Name == "CrateHighlighter" then
-            highlight:Destroy()
-        end
-    end
+local function getOres()
+    local tycoon = getTycoon()
+    if not tycoon then return {} end
+    local ores = tycoon:FindFirstChild("Ores")
+    return ores and ores:GetChildren() or {}
 end
 
--- Boost ores once
-local function boostOresOnce()
-    local Tycoon = getTycoon()
+local function getUpgraders()
+    local tycoon = getTycoon()
+    if not tycoon then return {} end
+    local items = tycoon:FindFirstChild("Items")
+    if not items then return {} end
     
-    if not Tycoon then
-        Library:Notify("Could not find player's tycoon")
-        return
-    end
-    
-    -- Safely get ores
-    local OresFolder = Tycoon:FindFirstChild("Ores")
-    local ItemsFolder = Tycoon:FindFirstChild("Items")
-    
-    if not OresFolder or not ItemsFolder then
-        Library:Notify("Tycoon missing required folders")
-        return
-    end
-    
-    local ores = OresFolder:GetChildren()
-    if #ores == 0 then
-        Library:Notify("No ores to process")
-        return
-    end
-    
-    -- Find upgraders
-    local Upgraders = {}
-    for i, v in pairs(ItemsFolder:GetChildren()) do
-        if v:FindFirstChild("Model") and v.Model:FindFirstChild("Upgrade") then
-            table.insert(Upgraders, v.Model.Upgrade)
+    local upgraders = {}
+    for _, item in pairs(items:GetChildren()) do
+        local model = item:FindFirstChild("Model")
+        if model and model:FindFirstChild("Upgrade") then
+            table.insert(upgraders, model.Upgrade)
         end
     end
+    return upgraders
+end
+
+local function getFurnace()
+    local tycoon = getTycoon()
+    if not tycoon then return nil end
+    local items = tycoon:FindFirstChild("Items")
+    if not items then return nil end
     
-    -- Find furnace
-    local Furnace = nil
-    for i, v in pairs(ItemsFolder:GetChildren()) do
-        if v:FindFirstChild("Model") and v.Model:FindFirstChild("Process") and not v.Model:FindFirstChild("Conv") then
-            Furnace = v.Model.Process
-            break
+    for _, item in pairs(items:GetChildren()) do
+        local model = item:FindFirstChild("Model")
+        if model and model:FindFirstChild("Process") and not model:FindFirstChild("Conv") then
+            return model.Process
         end
     end
+    return nil
+end
+
+-- ============== ORE BOOST SYSTEM ==============
+
+local function boostOres(cycles)
+    cycles = cycles or Settings.BoostCycles
+    local ores = getOres()
+    local upgraders = getUpgraders()
+    local furnace = getFurnace()
     
-    -- Only proceed if we have at least an upgrader or furnace
-    if #Upgraders == 0 and not Furnace then
-        Library:Notify("No upgraders or furnace found")
-        return
-    end
+    if #ores == 0 then return end
     
-    -- Process ores with upgraders
-    if #Upgraders > 0 then
-        for spamRound = 1, 5 do
-            for i, ore in pairs(ores) do
+    -- Boost with upgraders
+    if #upgraders > 0 then
+        for cycle = 1, cycles do
+            for _, ore in pairs(ores) do
                 if ore:IsA("BasePart") then
-                    for j, upgrader in ipairs(Upgraders) do
+                    for _, upgrader in ipairs(upgraders) do
                         firetouchinterest(ore, upgrader, 0)
                         firetouchinterest(ore, upgrader, 1)
                     end
                 end
             end
-            task.wait(0.1)
+            if cycle < cycles then task.wait(0.05) end
         end
     end
     
-    -- Process ores with furnace
-    if Furnace then
-        for i, ore in pairs(ores) do
+    -- Process with furnace
+    if furnace then
+        for _, ore in pairs(ores) do
             if ore:IsA("BasePart") then
-                firetouchinterest(ore, Furnace, 0)
-                firetouchinterest(ore, Furnace, 1)
+                firetouchinterest(ore, furnace, 0)
+                firetouchinterest(ore, furnace, 1)
+                task.wait()
             end
         end
     end
-    
-    Library:Notify("Ores boosted successfully!")
 end
 
--- Ore boost loop function
 local function oreBoostLoop()
-    while oreBoostLoopRunning do
-        task.wait(4)
-        
-        local Tycoon = getTycoon()
-        
-        if not Tycoon then
-            warn("Could not find player's tycoon, skipping cycle")
-            task.wait(4)
-            continue
-        end
-        
-        local OresFolder = Tycoon:FindFirstChild("Ores")
-        local ItemsFolder = Tycoon:FindFirstChild("Items")
-        
-        if not OresFolder or not ItemsFolder then
-            warn("Tycoon missing required folders, skipping cycle")
-            task.wait(4)
-            continue
-        end
-        
-        local ores = OresFolder:GetChildren()
-        if #ores == 0 then
-            task.wait(4)
-            continue
-        end
-        
-        local Upgraders = {}
-        for i, v in pairs(ItemsFolder:GetChildren()) do
-            if v:FindFirstChild("Model") and v.Model:FindFirstChild("Upgrade") then
-                table.insert(Upgraders, v.Model.Upgrade)
-            end
-        end
-        
-        local Furnace = nil
-        for i, v in pairs(ItemsFolder:GetChildren()) do
-            if v:FindFirstChild("Model") and v.Model:FindFirstChild("Process") and not v.Model:FindFirstChild("Conv") then
-                Furnace = v.Model.Process
-                break
-            end
-        end
-        
-        if #Upgraders == 0 and not Furnace then
-            warn("No upgraders or furnace found")
-            task.wait(4)
-            continue
-        end
-        
-        if #Upgraders > 0 then
-            for spamRound = 1, 6 do
-                for i, ore in pairs(ores) do
-                    if ore:IsA("BasePart") then
-                        for j, upgrader in ipairs(Upgraders) do
-                            firetouchinterest(ore, upgrader, 0)
-                            firetouchinterest(ore, upgrader, 1)
-                        end
-                    end
-                end
-                task.wait(0.1)
-            end
-        end
-        
-        if Furnace then
-            for i, ore in pairs(ores) do
-                if ore:IsA("BasePart") then
-                    firetouchinterest(ore, Furnace, 0)
-                    firetouchinterest(ore, Furnace, 1)
-                end
-            end
-        end
-    end
-end
-
--- Crate farm function
-local function crateFarm()
-    if not crateFarmRunning then return end
-    
-    local character = LocalPlayer.Character
-    if not character then return end
-    
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
-    
-    local Tycoon = getTycoon()
-    if not Tycoon then
-        Library:Notify("Could not find player's tycoon")
-        crateFarmRunning = false
-        return
-    end
-    
-    local TycoonCenter = Tycoon:FindFirstChild("Center")
-    if not TycoonCenter then return end
-    
-    local Dump = workspace:FindFirstChild("Dump")
-    if not Dump then
-        Library:Notify("No dump found")
-        crateFarmRunning = false
-        return
-    end
-    
-    -- Find crates
-    local crates = {}
-    for _, descendant in pairs(Dump:GetDescendants()) do
-        if string.find(descendant.Name:lower(), "crate") and descendant:IsA("BasePart") then
-            table.insert(crates, descendant)
-        end
-    end
-    
-    if #crates == 0 then
-        Library:Notify("No crates found")
+    while Settings.OreBoostLoop do
+        boostOres(Settings.BoostCycles)
         task.wait(2)
-        return
-    end
-    
-    -- Teleport to each crate
-    for _, crate in pairs(crates) do
-        if not crateFarmRunning then break end
-        
-        -- Teleport to crate
-        humanoidRootPart.CFrame = crate.CFrame + Vector3.new(0, 3, 0)
-        task.wait(0.5)
-        
-        -- Collect crate (simulate touch)
-        firetouchinterest(humanoidRootPart, crate, 0)
-        firetouchinterest(humanoidRootPart, crate, 1)
-        task.wait(0.5)
-    end
-    
-    -- Return to tycoon
-    if crateFarmRunning then
-        humanoidRootPart.CFrame = TycoonCenter.CFrame
-        Library:Notify("Crate farm completed")
     end
 end
 
--- Start crate farm loop
-local function startCrateFarm()
-    if crateFarmConnection then
-        crateFarmConnection:Disconnect()
-        crateFarmConnection = nil
+-- ============== REBIRTH SYSTEM ==============
+
+local function canRebirth()
+    local data = DataModule.GetData()
+    local reincarnations = data.GameStats.Reincarnation
+    local money = data.Currencies.Money
+    local price = ProgressionModule.CalculateReincarnationPrice(nil, reincarnations)
+    
+    local moneyNum = SuffixModule.GetInput(tostring(money))
+    local priceNum = SuffixModule.GetInput(tostring(price))
+    
+    return moneyNum >= priceNum, moneyNum, priceNum
+end
+
+local function doRebirth()
+    local available = canRebirth()
+    if not available then return false end
+    
+    print("💰 Attempting rebirth...")
+    Library:Notify("💰 Attempting rebirth...")
+    
+    local success = pcall(function() CallRemote("Reincarnate") end)
+    
+    if success then
+        print("✅ Rebirth successful!")
+        Library:Notify("✅ Rebirth successful!")
+        
+        task.wait(3)
+        
+        if Settings.LoadBlueprint then
+            local loadSuccess = pcall(function() CallRemote("LoadBlueprint", Settings.BlueprintSlot) end)
+            if loadSuccess then
+                print("✅ Blueprint " .. Settings.BlueprintSlot .. " loaded")
+                Library:Notify("✅ Blueprint " .. Settings.BlueprintSlot .. " loaded")
+                
+                if Settings.ReloadBlueprint then
+                    task.wait(Settings.ReloadDelay)
+                    pcall(function() CallRemote("LoadBlueprint", Settings.BlueprintSlot) end)
+                    print("✅ Blueprint reloaded")
+                end
+            end
+        end
+        return true
+    else
+        print("❌ Rebirth failed")
+        Library:Notify("❌ Rebirth failed")
+        return false
+    end
+end
+
+local function rebirthLoop()
+    while Settings.AutoRebirth do
+        doRebirth()
+        task.wait(Settings.RebirthDelay)
+    end
+end
+
+-- ============== CRATE SYSTEM ==============
+
+local function findCrates()
+    local dump = workspace:FindFirstChild("Dump")
+    if not dump then return {} end
+    
+    local crates = {}
+    for _, v in pairs(dump:GetDescendants()) do
+        if v:IsA("BasePart") and string.find(v.Name:lower(), "crate") then
+            table.insert(crates, v)
+        end
+    end
+    return crates
+end
+
+local function collectCrates()
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local center = getTycoonCenter()
+    if not center then return end
+    
+    local crates = findCrates()
+    if #crates == 0 then return end
+    
+    Library:Notify("📦 Found " .. #crates .. " crates")
+    
+    for _, crate in ipairs(crates) do
+        hrp.CFrame = crate.CFrame + Vector3.new(0, 3, 0)
+        task.wait(0.2)
+        firetouchinterest(hrp, crate, 0)
+        firetouchinterest(hrp, crate, 1)
+        task.wait(0.2)
     end
     
-    crateFarmConnection = RunService.Heartbeat:Connect(function()
-        if crateFarmRunning then
-            crateFarm()
-            task.wait(5) -- Wait 5 seconds between farm cycles
+    hrp.CFrame = center.CFrame + Vector3.new(0, 5, 0)
+    Library:Notify("✅ Crate run complete")
+end
+
+local function crateFarmLoop()
+    while Settings.CrateFarm do
+        collectCrates()
+        task.wait(10)
+    end
+end
+
+-- ============== HIGHLIGHT SYSTEM ==============
+
+local function setupHighlights()
+    if not Settings.HighlightCrates then return end
+    
+    local dump = workspace:FindFirstChild("Dump")
+    if not dump then return end
+    
+    local function addHighlight(obj)
+        if obj:IsA("BasePart") or obj:IsA("Model") then
+            if not obj:FindFirstChildOfClass("Highlight") then
+                local h = Instance.new("Highlight")
+                h.Name = "CrateHighlight"
+                h.FillColor = Color3.fromRGB(0, 255, 0)
+                h.OutlineColor = Color3.fromRGB(0, 200, 0)
+                h.FillTransparency = 0.3
+                h.Parent = obj
+            end
+        end
+    end
+    
+    for _, v in pairs(dump:GetDescendants()) do
+        if string.find(v.Name:lower(), "crate") then
+            addHighlight(v)
+        end
+    end
+    
+    dump.DescendantAdded:Connect(function(v)
+        task.wait()
+        if string.find(v.Name:lower(), "crate") then
+            addHighlight(v)
         end
     end)
 end
 
-local OreBoostGroupBox = Tabs.Main:AddLeftGroupbox('Ore Boost')
-local ReincanationGroupBox = Tabs.Main:AddLeftGroupbox('Reincanation')
-local CratesGroupBox = Tabs.Main:AddLeftGroupbox('Crates')
+local function removeHighlights()
+    local dump = workspace:FindFirstChild("Dump")
+    if not dump then return end
+    
+    for _, v in pairs(dump:GetDescendants()) do
+        local h = v:FindFirstChildOfClass("Highlight")
+        if h and h.Name == "CrateHighlight" then
+            h:Destroy()
+        end
+    end
+end
 
--- Ore Boost Loop Toggle
-OreBoostGroupBox:AddToggle('OreBoostLoopToggle', {
-	Text = 'Ore Boost Loop',
-	Default = false,
-	Disabled = false,
-	Visible = true,
-	Risky = false,
-	Callback = function(Value)
-		oreBoostLoopRunning = Value
-		if Value then
-			coroutine.wrap(oreBoostLoop)()
-			Library:Notify("Ore Boost Loop: Enabled")
-		else
-			Library:Notify("Ore Boost Loop: Disabled")
-		end
-	end
+-- ============== UI CONSTRUCTION ==============
+-- All GroupBoxes in the Main Tab
+
+-- Left Column
+local OreGroup = MainTab:AddLeftGroupbox('⚡ Ore Boost')
+local RebirthGroup = MainTab:AddLeftGroupbox('🔄 Auto Rebirth')
+local CrateGroup = MainTab:AddLeftGroupbox('📦 Crate Farming')
+
+-- Right Column
+local BlueprintGroup = MainTab:AddRightGroupbox('📋 Blueprint Settings')
+local ServerGroup = MainTab:AddRightGroupbox('🌐 Server')
+local VisualGroup = MainTab:AddRightGroupbox('🎨 Visuals')
+
+-- ============== ORE BOOST GROUP ==============
+
+OreGroup:AddToggle('OreBoostToggle', {
+    Text = 'Ore Boost Loop',
+    Default = false,
+    Callback = function(v)
+        Settings.OreBoostLoop = v
+        if v then
+            coroutine.wrap(oreBoostLoop)()
+            Library:Notify("🔄 Ore boost loop enabled")
+        else
+            Library:Notify("⏹️ Ore boost loop disabled")
+        end
+    end
 })
 
--- Boost Once Button
-local OreBoostButton = OreBoostGroupBox:AddButton({
-	Text = 'Boost Ores Once',
-	Func = function()
-		boostOresOnce()
-	end,
-	DoubleClick = false,
-	Disabled = false,
-	Visible = true
+OreGroup:AddSlider('BoostCycles', {
+    Text = 'Boost Cycles',
+    Default = 6,
+    Min = 1,
+    Max = 20,
+    Rounding = 1,
+    Callback = function(v) Settings.BoostCycles = v end
 })
 
--- Highlight Crates Toggle
-CratesGroupBox:AddToggle('HighlightCrates', {
-	Text = 'Highlight Crates',
-	Default = false,
-	Disabled = false,
-	Visible = true,
-	Risky = false,
-	Callback = function(Value)
-		highlightsEnabled = Value
-		if Value then
-			setupHighlights()
-			Library:Notify("Crate Highlights: Enabled")
-		else
-			removeHighlights()
-			Library:Notify("Crate Highlights: Disabled")
-		end
-	end
+OreGroup:AddButton({
+    Text = 'Boost Ores Once',
+    Func = function() boostOres(Settings.BoostCycles) end
 })
 
--- Crate Farm Toggle
-CratesGroupBox:AddToggle('CrateFarm', {
-	Text = 'Crate Farm',
-	Default = false,
-	Disabled = false,
-	Visible = true,
-	Risky = true,
-	Callback = function(Value)
-		crateFarmRunning = Value
-		if Value then
-			startCrateFarm()
-			Library:Notify("Crate Farm: Enabled")
-		else
-			if crateFarmConnection then
-				crateFarmConnection:Disconnect()
-				crateFarmConnection = nil
-			end
-			Library:Notify("Crate Farm: Disabled")
-		end
-	end
+-- ============== REBIRTH GROUP ==============
+
+RebirthGroup:AddToggle('AutoRebirthToggle', {
+    Text = 'Auto Rebirth',
+    Default = false,
+    Callback = function(v)
+        Settings.AutoRebirth = v
+        if v then
+            coroutine.wrap(rebirthLoop)()
+            Library:Notify("🔄 Auto rebirth enabled")
+        else
+            Library:Notify("⏹️ Auto rebirth disabled")
+        end
+    end
 })
 
--- Collect Crates Once Button
-CratesGroupBox:AddButton({
-	Text = 'Collect Crates Once',
-	Func = function()
-		if not crateFarmRunning then
-			local oldValue = crateFarmRunning
-			crateFarmRunning = true
-			crateFarm()
-			crateFarmRunning = oldValue
-		end
-	end,
-	DoubleClick = false,
-	Disabled = false,
-	Visible = true
+RebirthGroup:AddSlider('RebirthDelay', {
+    Text = 'Check Delay (seconds)',
+    Default = 10,
+    Min = 3,
+    Max = 60,
+    Rounding = 1,
+    Callback = function(v) Settings.RebirthDelay = v end
 })
+
+RebirthGroup:AddDivider()
+
+RebirthGroup:AddButton({
+    Text = 'Rebirth Now',
+    Func = doRebirth
+})
+
+RebirthGroup:AddButton({
+    Text = 'Check Rebirth Status',
+    Func = function()
+        local available, money, price = canRebirth()
+        Library:Notify(string.format("Money: %.2f | Price: %.2f | Can rebirth: %s", 
+            money, price, available and "✅" or "❌"))
+    end
+})
+
+-- ============== CRATE GROUP ==============
+
+CrateGroup:AddToggle('CrateFarmToggle', {
+    Text = 'Crate Farm Loop',
+    Default = false,
+    Risky = true,
+    Callback = function(v)
+        Settings.CrateFarm = v
+        if v then
+            coroutine.wrap(crateFarmLoop)()
+            Library:Notify("📦 Crate farm enabled")
+        else
+            Library:Notify("📦 Crate farm disabled")
+        end
+    end
+})
+
+CrateGroup:AddButton({
+    Text = 'Collect Crates Once',
+    Func = collectCrates
+})
+
+-- ============== BLUEPRINT GROUP ==============
+
+BlueprintGroup:AddToggle('LoadBlueprintToggle', {
+    Text = 'Load Blueprint After Rebirth',
+    Default = false,
+    Callback = function(v) Settings.LoadBlueprint = v end
+})
+
+BlueprintGroup:AddDropdown('BlueprintSlot', {
+    Values = {1, 2, 3, 4, 5},
+    Default = 1,
+    Multi = false,
+    Text = 'Blueprint Slot',
+    Callback = function(v) Settings.BlueprintSlot = v end
+})
+
+BlueprintGroup:AddToggle('ReloadBlueprintToggle', {
+    Text = 'Reload Blueprint After Delay',
+    Default = false,
+    Callback = function(v) Settings.ReloadBlueprint = v end
+})
+
+BlueprintGroup:AddSlider('ReloadDelay', {
+    Text = 'Reload Delay',
+    Default = 5,
+    Min = 1,
+    Max = 30,
+    Rounding = 1,
+    Callback = function(v) Settings.ReloadDelay = v end
+})
+
+BlueprintGroup:AddButton({
+    Text = 'Load Blueprint Now',
+    Func = function()
+        local success = pcall(function() CallRemote("LoadBlueprint", Settings.BlueprintSlot) end)
+        Library:Notify(success and "✅ Blueprint loaded" or "❌ Failed to load blueprint")
+    end
+})
+
+-- ============== SERVER GROUP ==============
+
+ServerGroup:AddButton({
+    Text = 'Hop to Rebirth Server',
+    Func = function()
+        local file = "Reincarnated_Hopped.txt"
+        if isfile and isfile(file) then delfile(file) end
+        if writefile then writefile(file, "true") end
+        
+        -- Queue on teleport
+        if queue_on_teleport then
+            queue_on_teleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/VertigoCool99/scripts/refs/heads/main/Reincarnated.lua"))()')
+        end
+        
+        game:GetService("TeleportService"):Teleport(126642046443487, LocalPlayer)
+    end
+})
+
+-- ============== VISUAL GROUP ==============
+
+VisualGroup:AddToggle('HighlightCratesToggle', {
+    Text = 'Highlight Crates',
+    Default = false,
+    Callback = function(v)
+        Settings.HighlightCrates = v
+        if v then
+            setupHighlights()
+            Library:Notify("🔆 Crate highlights on")
+        else
+            removeHighlights()
+            Library:Notify("🔆 Crate highlights off")
+        end
+    end
+})
+
+-- ============== WATERMARK ==============
 
 Library:SetWatermarkVisibility(true)
 
 local FrameTimer = tick()
-local FrameCounter = 0;
-local FPS = 60;
-local GetPing = (function() return math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue()) end)
-local CanDoPing = pcall(function() return GetPing(); end)
+local FrameCounter = 0
+local FPS = 60
+local GetPing = function() return math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue()) end
+local CanDoPing = pcall(GetPing)
 
-local WatermarkConnection = game:GetService('RunService').RenderStepped:Connect(function()
-	FrameCounter += 1;
-
-	if (tick() - FrameTimer) >= 1 then
-		FPS = FrameCounter;
-		FrameTimer = tick();
-		FrameCounter = 0;
-	end;
-
-	if CanDoPing then
-		Library:SetWatermark(('Reincarnated | %d fps | %d ms'):format(
-			math.floor(FPS),
-			GetPing()
-		));
-	else
-		Library:SetWatermark(('Reincarnated | %d fps'):format(
-			math.floor(FPS)
-		));
-	end
-end);
-
--- Cleanup function
-Library:OnUnload(function()
-	WatermarkConnection:Disconnect()
-	
-	-- Stop all features
-	oreBoostLoopRunning = false
-	crateFarmRunning = false
-	highlightsEnabled = false
-	
-	-- Remove highlights
-	removeHighlights()
-	
-	-- Disconnect crate farm connection
-	if crateFarmConnection then
-		crateFarmConnection:Disconnect()
-		crateFarmConnection = nil
-	end
-	
-	print('Unloaded!')
-	Library.Unloaded = true
+RunService.RenderStepped:Connect(function()
+    FrameCounter += 1
+    if tick() - FrameTimer >= 1 then
+        FPS = FrameCounter
+        FrameTimer = tick()
+        FrameCounter = 0
+    end
+    Library:SetWatermark(('Reincarnated | %d fps | %d ms'):format(FPS, CanDoPing and GetPing() or 0))
 end)
 
--- UI Settings
-local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+-- ============== CLEANUP ==============
 
-MenuGroup:AddToggle("KeybindMenuOpen", { Default = Library.KeybindFrame.Visible, Text = "Open Keybind Menu", Callback = function(value) Library.KeybindFrame.Visible = value end})
-MenuGroup:AddToggle("ShowCustomCursor", {Text = "Custom Cursor", Default = true, Callback = function(Value) Library.ShowCustomCursor = Value end})
+Library:OnUnload(function()
+    Settings.OreBoostLoop = false
+    Settings.AutoRebirth = false
+    Settings.CrateFarm = false
+    Settings.HighlightCrates = false
+    removeHighlights()
+    Library.Unloaded = true
+end)
+
+-- ============== UI SETTINGS ==============
+
+local MenuGroup = UISettingsTab:AddLeftGroupbox('Menu')
+
+MenuGroup:AddToggle("KeybindMenuOpen", {
+    Default = Library.KeybindFrame.Visible,
+    Text = "Open Keybind Menu",
+    Callback = function(v) Library.KeybindFrame.Visible = v end
+})
+
+MenuGroup:AddToggle("ShowCustomCursor", {
+    Text = "Custom Cursor",
+    Default = true,
+    Callback = function(v) Library.ShowCustomCursor = v end
+})
+
 MenuGroup:AddDivider()
-MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu keybind" })
+MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true })
 MenuGroup:AddButton("Unload", function() Library:Unload() end)
 
 Library.ToggleKeybind = Options.MenuKeybind
@@ -527,29 +578,19 @@ SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
 ThemeManager:SetFolder('Reincarnated')
 SaveManager:SetFolder('Reincarnated')
-SaveManager:BuildConfigSection(Tabs['UI Settings'])
-ThemeManager:ApplyToTab(Tabs['UI Settings'])
+SaveManager:BuildConfigSection(UISettingsTab)
+ThemeManager:ApplyToTab(UISettingsTab)
 SaveManager:LoadAutoloadConfig()
 
-local file = "Reincarnated_Hopped.txt"
-local hasHopped = isfile and isfile(file) and readfile(file) == "true"
-
-if not hasHopped then
-    if writefile then
-        writefile(file, "true")
-    end
-    task.wait(5)
-    game:GetService("TeleportService"):Teleport(126642046443487, game.Players.LocalPlayer)
-end
-
-if queue_on_teleport ~= nil then
-    queue_on_teleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/VertigoCool99/scripts/refs/heads/main/Reincarnated.lua"))()')
-    if hasHopped then delfile(file) end
-end
+-- ============== INIT ==============
 
 task.spawn(function()
-    task.wait(10)
-    print("Cached remotes after 10 seconds:")
+    task.wait(3)
+    print("✅ Reincarnated script loaded!")
+    Library:Notify("✅ Reincarnated loaded!")
+    
+    -- Show cached remotes
+    print("📡 Cached remotes:")
     for name, _ in pairs(RemoteCache) do
         print("  -", name)
     end
