@@ -80,6 +80,7 @@ local Settings = {
     RebirthDelay = 10,
     LoadBlueprint = false,
     BlueprintSlot = 1,
+    NextBlueprintSlot = 2,
     ReloadBlueprint = false,
     ReloadDelay = 5,
     
@@ -224,7 +225,7 @@ local function doRebirth()
                 
                 if Settings.ReloadBlueprint then
                     task.wait(Settings.ReloadDelay)
-                    pcall(function() CallRemote("LoadBlueprint", Settings.BlueprintSlot) end)
+                    pcall(function() CallRemote("LoadBlueprint", Settings.NextBlueprintSlot) end)
                     print("✅ Blueprint reloaded")
                 end
             end
@@ -402,8 +403,8 @@ RebirthGroup:AddToggle('AutoRebirthToggle', {
 RebirthGroup:AddSlider('RebirthDelay', {
     Text = 'Check Delay (seconds)',
     Default = 10,
-    Min = 3,
-    Max = 60,
+    Min = .1,
+    Max = 10,
     Rounding = 1,
     Callback = function(v) Settings.RebirthDelay = v end
 })
@@ -462,6 +463,14 @@ BlueprintGroup:AddDropdown('BlueprintSlot', {
     Callback = function(v) Settings.BlueprintSlot = v end
 })
 
+BlueprintGroup:AddDropdown('NextBlueprintSlot', {
+    Values = {1, 2, 3},
+    Default = 1,
+    Multi = false,
+    Text = 'Blueprint Slot',
+    Callback = function(v) Settings.NextBlueprintSlot = v end
+})
+
 BlueprintGroup:AddToggle('ReloadBlueprintToggle', {
     Text = 'Reload Blueprint After Delay',
     Default = false,
@@ -488,7 +497,7 @@ BlueprintGroup:AddButton({
 -- ============== SERVER GROUP ==============
 
 ServerGroup:AddButton({
-    Text = 'Hop to Rebirth Server',
+    Text = 'Server Hop [Cache Remotes]',
     Func = function()
         local file = "Reincarnated_Hopped.txt"
         if isfile and isfile(file) then delfile(file) end
