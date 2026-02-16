@@ -531,10 +531,6 @@ SaveManager:BuildConfigSection(Tabs['UI Settings'])
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 SaveManager:LoadAutoloadConfig()
 
-if queue_on_teleport ~= nil then
-    queue_on_teleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/VertigoCool99/scripts/refs/heads/main/Reincarnated.lua"))()')
-end
-
 local file = "Reincarnated_Hopped.txt"
 local hasHopped = isfile and isfile(file) and readfile(file) == "true"
 
@@ -544,10 +540,11 @@ if not hasHopped then
     end
     task.wait(5)
     game:GetService("TeleportService"):Teleport(126642046443487, game.Players.LocalPlayer)
-    task.wait(1)
-    if isfile and isfile(file) then
-        delfile(file)
-    end
+end
+
+if queue_on_teleport ~= nil then
+    queue_on_teleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/VertigoCool99/scripts/refs/heads/main/Reincarnated.lua"))()')
+    if hasHopped then delfile(file) end
 end
 
 task.spawn(function()
