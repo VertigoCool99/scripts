@@ -532,13 +532,13 @@ ThemeManager:ApplyToTab(Tabs['UI Settings'])
 SaveManager:LoadAutoloadConfig()
 
 if queue_on_teleport ~= nil then
-    queue_on_teleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/VertigoCool99/scripts/refs/heads/main/Reincarnatedd.lua"))()')
+    queue_on_teleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/VertigoCool99/scripts/refs/heads/main/Reincarnated.lua"))()')
 end
 
 task.spawn(function()
     task.wait(5)
     print("Cached remotes after 5 seconds:")
-    if RemoteCache < 2 then
+    if #RemoteCache < 2 then
         warn("Forcing Rejoin")
         game:GetService("TeleportService"):Teleport(126642046443487,game.Players.LocalPlayer)
     end
