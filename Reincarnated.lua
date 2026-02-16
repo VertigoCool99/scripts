@@ -531,7 +531,15 @@ SaveManager:BuildConfigSection(Tabs['UI Settings'])
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 SaveManager:LoadAutoloadConfig()
 
+game:GetService("GuiService").ErrorMessageChanged:Connect(function()
+    game:GetService("TeleportService"):Teleport(126642046443487,game.Players.LocalPlayer)
+end)
+if queue_on_teleport ~= nil then
+    queue_on_teleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/VertigoCool99/scripts/refs/heads/main/Reincarnated.lua"))()')
+end
+
+
 task.wait(5)
 if #RemoteCache < 1 then
-    
+    game:GetService("TeleportService"):Teleport(126642046443487,game.Players.LocalPlayer)
 end
